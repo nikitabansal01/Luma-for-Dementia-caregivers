@@ -1,0 +1,137 @@
+{
+  "default": [
+    "Note the time and context for next time.",
+    "Share with care team at next check-in.",
+    "Consider logging again if pattern repeats."
+  ],
+  "AGITATION_AGGRESSION": {
+    "ENVIRONMENT": [
+      "Reduce noise and visual clutter.",
+      "Ensure space is safe; step back if needed.",
+      "Give space; avoid crowding."
+    ],
+    "UNMET_NEED": [
+      "Check for pain, hunger, or toileting needs.",
+      "Address pain or discomfort first.",
+      "Use simple choices to restore control."
+    ],
+    "EVENT": [
+      "Briefly acknowledge what happened.",
+      "Redirect to a calm activity.",
+      "De-escalate: lower voice, slow movements."
+    ],
+    "UNAVOIDABLE": [
+      "Stay calm and present.",
+      "Prioritize safety for everyone.",
+      "Document for care team review."
+    ],
+    "UNKNOWN": [
+      "Note what preceded the episode.",
+      "Try reassurance and redirect.",
+      "Log trigger detail next time if noticed."
+    ],
+    "default": [
+      "Stay calm and use a gentle tone.",
+      "Redirect to a preferred activity.",
+      "Note severity (verbal vs physical) for care team."
+    ]
+  },
+  "SLEEP_SUNDOWNING": {
+    "ENVIRONMENT": [
+      "Increase light in late afternoon.",
+      "Keep room dark, quiet, and cool at night.",
+      "Reduce noise and activity toward evening."
+    ],
+    "UNMET_NEED": [
+      "Check pain, need to toilet, or thirst.",
+      "Offer brief reassurance; avoid over-engaging at night.",
+      "Limit caffeine and screens before bed."
+    ],
+    "EVENT": [
+      "Keep evening routine consistent.",
+      "Note what seemed to wake them or start agitation.",
+      "Avoid long conversations at night."
+    ],
+    "UNAVOIDABLE": [
+      "Minimize disruption; dim lights.",
+      "Document for sleep plan and care team.",
+      "Share pattern with doctor if persistent."
+    ],
+    "UNKNOWN": [
+      "Note time and any change (meds, nap).",
+      "Gentle redirect; keep interaction minimal.",
+      "Log pattern for review."
+    ],
+    "default": [
+      "Keep nighttime interaction minimal.",
+      "Same wake/sleep time when possible.",
+      "Share pattern with care team."
+    ]
+  },
+  "MEDICATION_ADHERENCE": {
+    "EVENT": [
+      "Note missed doses and context.",
+      "Use pill organizer or reminder if helpful.",
+      "Share with prescriber before next change."
+    ],
+    "ENVIRONMENT": [
+      "Keep routine and setting consistent for med times.",
+      "Reduce distractions when giving meds."
+    ],
+    "UNMET_NEED": [
+      "Report drowsiness, dizziness, or GI issues to prescriber.",
+      "Do not stop or change dose without doctor.",
+      "Note new symptoms after any med change."
+    ],
+    "UNAVOIDABLE": [
+      "Discuss trade-offs with prescriber.",
+      "Document side effects for next visit."
+    ],
+    "UNKNOWN": [
+      "Log what happened and when.",
+      "Share with care team or pharmacist."
+    ],
+    "default": [
+      "Document missed doses and any new symptoms.",
+      "Share with prescriber at next check-in.",
+      "Do not adjust medication without doctor."
+    ]
+  },
+  "FUNCTIONAL_DECLINE": {
+    "EVENT": [
+      "Break task into smaller steps.",
+      "Allow more time; don't rush.",
+      "Note which ADL and how much help was needed."
+    ],
+    "ENVIRONMENT": [
+      "Reduce pressure (fewer people, familiar setting).",
+      "Offer choice when possible."
+    ],
+    "UNMET_NEED": [
+      "Check for pain or fatigue during the task.",
+      "Offer assistance without taking over.",
+      "One step at a time; praise cooperation."
+    ],
+    "UNAVOIDABLE": [
+      "Document what assistance is required.",
+      "Share with care team for care planning.",
+      "Signals stage transition; discuss with neurologist."
+    ],
+    "UNKNOWN": [
+      "Note what changed and when.",
+      "Share with care team for pattern review."
+    ],
+    "default": [
+      "Note which ADL (dressing, bathing, eating, mobility).",
+      "Document level of assistance required.",
+      "Share with care team for care plan update."
+    ]
+  },
+  "OTHER_BEHAVIOR": {
+    "default": [
+      "Note what you observed in detail.",
+      "Share with care team when possible.",
+      "Keep log for pattern over time."
+    ]
+  }
+}
