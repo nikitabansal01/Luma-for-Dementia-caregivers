@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createEmptyDraft,
@@ -18,10 +18,11 @@ import {
   userAskingForDraftSummary,
   userConfirmedSave,
 } from "@/src/lib/lumaConversationDesign";
+import { recommendationActions } from "@/src/lib/coachFlowRecommendations";
 import {
-  generateCoachRecommendations,
-  recommendationActions,
-} from "@/src/lib/coachFlowRecommendations";
+  getLumaReflectSuggestions,
+  shouldShowLumaReflectSuggestions,
+} from "@/src/lib/lumaReflectSuggestions";
 import {
   DID_NOT_TRY_CODE,
   getCoachFlowTriggerLabel,
@@ -45,6 +46,7 @@ import {
   useSpeechRecognition,
 } from "./useSpeechRecognition";
 import LumaFinalLogEditor from "./LumaFinalLogEditor";
+import LumaSuggestionPanel from "./LumaSuggestionPanel";
 import {
   clearLumaSession,
   formatLumaSessionSavedAt,
@@ -223,12 +225,7 @@ export default function LumaCompanion({
       const didNotTryOnly =
         d.strategies_tried.length === 1 && d.strategies_tried[0] === DID_NOT_TRY_CODE;
       const effectiveOutcome = didNotTryOnly ? "not_applicable" : d.coach_outcome ?? "not_sure";
-      const recs = generateCoachRecommendations({
-        triggerCodes: d.trigger_hypotheses,
-        strategiesTried: d.strategies_tried,
-        outcome: effectiveOutcome,
-        severity: d.severity ?? 2,
-      });
+      const recs = getLumaReflectSuggestions(d);
 
       const result = await submitLumaLogAction({
         behavior_type: d.behavior_code!,
@@ -396,6 +393,17 @@ export default function LumaCompanion({
     (primaryGap(inferredDraft) === "review" || step === "confirm") &&
     !keepTalkingDismissed;
 
+  const showSuggestions = shouldShowLumaReflectSuggestions(draft);
+  const suggestions = useMemo(() => {
+    if (showFinalLogEditor) {
+      return getLumaReflectSuggestions(draft, 3);
+    }
+    if (showSuggestions) {
+      return getLumaReflectSuggestions(draft, 2);
+    }
+    return [];
+  }, [draft, showFinalLogEditor, showSuggestions]);
+
   const providerLabel =
     llmProvider === "openai"
       ? "OpenAI"
@@ -475,6 +483,7 @@ export default function LumaCompanion({
           customBehaviors={customBehaviors}
           saving={saving}
           lastAutoSavedAt={lastAutoSavedAt}
+          suggestions={suggestions}
           onDraftChange={(next) => {
             draftRef.current = next;
             setDraft(next);
@@ -486,12 +495,20 @@ export default function LumaCompanion({
           }}
         />
       ) : (
-        <LumaDraftPanel
-          draft={draft}
-          open={draftOpen}
-          lastAutoSavedAt={lastAutoSavedAt}
-          onToggle={() => setDraftOpen((v) => !v)}
-        />
+        <>
+          <LumaDraftPanel
+            draft={draft}
+            open={draftOpen}
+            lastAutoSavedAt={lastAutoSavedAt}
+            onToggle={() => setDraftOpen((v) => !v)}
+          />
+          {showSuggestions && (
+            <LumaSuggestionPanel
+              recommendations={suggestions}
+              className="luma-companion__suggestions coach-suggestions-panel"
+            />
+          )}
+        </>
       )}
 
       <form
@@ -505,7 +522,7 @@ export default function LumaCompanion({
           type="text"
           value={inputValue}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={listening ? "Listening…" : "Talk to Luma…"}
+          placeholder={listening ? "Listening…" : "Reflect with Luma…"}
           disabled={saving || thinking}
           readOnly={listening}
           className={`luma-companion__input${listening ? " luma-companion__input--listening" : ""}`}

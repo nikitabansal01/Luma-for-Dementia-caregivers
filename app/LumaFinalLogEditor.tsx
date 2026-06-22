@@ -10,6 +10,7 @@ import {
   type CoachOutcomeUi,
 } from "@/src/lib/coachFlowCatalog";
 import type { LumaDraft } from "@/src/lib/lumaEngine";
+import type { RecommendationCard } from "@/src/lib/coachFlowRecommendations";
 import { formatLumaSessionSavedAt } from "@/src/lib/lumaSessionStorage";
 import {
   defaultEpisodeTiming,
@@ -18,6 +19,7 @@ import {
   type EpisodeTimeOfDay,
 } from "@/src/lib/episodeTiming";
 import EpisodeTimingSelector from "./EpisodeTimingSelector";
+import LumaSuggestionPanel from "./LumaSuggestionPanel";
 import SeveritySelector from "./SeveritySelector";
 
 type CustomBehaviorOption = { code: string; label: string };
@@ -27,6 +29,7 @@ type LumaFinalLogEditorProps = {
   customBehaviors: CustomBehaviorOption[];
   saving: boolean;
   lastAutoSavedAt: string | null;
+  suggestions?: RecommendationCard[];
   onDraftChange: (draft: LumaDraft) => void;
   onSave: () => void;
   onKeepTalking: () => void;
@@ -39,6 +42,7 @@ export default function LumaFinalLogEditor({
   customBehaviors,
   saving,
   lastAutoSavedAt,
+  suggestions,
   onDraftChange,
   onSave,
   onKeepTalking,
@@ -286,6 +290,13 @@ export default function LumaFinalLogEditor({
           />
         </div>
       </div>
+
+      {suggestions != null && (
+        <LumaSuggestionPanel
+          recommendations={suggestions}
+          className="luma-companion__final-log-suggestions coach-suggestions-panel"
+        />
+      )}
 
       <div className="luma-companion__final-log-actions">
         <button

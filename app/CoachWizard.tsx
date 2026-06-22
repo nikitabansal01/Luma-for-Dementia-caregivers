@@ -249,7 +249,7 @@ export default function CoachWizard({ onClose }: CoachWizardProps) {
           <header className="coach-flow-header">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-care-olive">
-                Coach flow
+                Guided clarity log
               </p>
               <p className="mt-1 text-sm text-care-stone">
                 Step {step} of {COACH_STEPS.length}

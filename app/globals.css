@@ -24,6 +24,36 @@
 }
 
 @layer components {
+  /* Site chrome */
+  .site-header {
+    @apply bg-care-cream;
+  }
+  .site-header__inner {
+    @apply mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6;
+  }
+  .site-main {
+    @apply mx-auto max-w-6xl px-4 pb-10 pt-2 sm:px-6 sm:pb-12;
+  }
+  .site-logo {
+    @apply inline-flex items-center gap-2 no-underline;
+  }
+  .site-logo__leaf {
+    @apply text-care-forest;
+  }
+  .site-logo__text {
+    @apply font-serif text-xl font-semibold text-care-forest;
+  }
+  .site-nav-link {
+    @apply relative pb-1 text-sm font-medium text-care-stone no-underline transition-colors hover:text-care-bark;
+  }
+  .site-nav-link--active {
+    @apply font-semibold text-care-forest;
+  }
+  .site-nav-link--active::after {
+    content: "";
+    @apply absolute inset-x-0 -bottom-0.5 h-0.5 rounded-full bg-care-forest;
+  }
+
   .btn-primary {
     @apply rounded-lg bg-care-forest px-4 py-2.5 text-sm font-semibold text-white shadow-card transition-all hover:bg-care-olive hover:shadow-cardHover active:scale-[0.98];
   }
@@ -580,6 +610,12 @@
   .luma-companion__final-log-fields {
     @apply max-h-[min(28rem,55vh)] space-y-5 overflow-y-auto pr-1;
   }
+  .luma-companion__suggestions {
+    @apply mt-4;
+  }
+  .luma-companion__final-log-suggestions {
+    @apply mt-6;
+  }
   .luma-companion__final-log-actions {
     @apply mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-care-sage/50 pt-4;
   }
@@ -625,13 +661,16 @@
     @apply w-full max-w-lg shadow-cardHover lg:max-w-5xl;
   }
   .onboarding-banner {
-    @apply flex flex-col gap-3 rounded-xl border border-care-amber/50 bg-care-amber/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between;
+    @apply flex flex-col items-start gap-3 rounded-2xl border border-care-amber/40 bg-[#faf3e0] px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4;
+  }
+  .onboarding-banner__icon {
+    @apply shrink-0 text-base text-[#c9a227];
   }
   .onboarding-banner__text {
-    @apply text-sm text-care-bark;
+    @apply flex-1 text-sm leading-relaxed text-care-bark;
   }
   .onboarding-banner__link {
-    @apply shrink-0 text-sm font-semibold text-care-forest underline hover:text-care-olive;
+    @apply shrink-0 text-sm font-semibold text-care-forest no-underline hover:text-care-olive;
   }
   .care-profile-form__section {
     @apply overflow-hidden rounded-xl border border-care-sage bg-white shadow-card;
@@ -713,46 +752,61 @@
 
   /* Home dashboard — production-style Today view */
   .home-shell {
-    @apply space-y-6;
+    @apply space-y-5;
   }
   .home-dashboard {
-    @apply grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,20rem)] lg:items-start;
+    @apply grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)] lg:items-start lg:gap-8;
   }
   .home-dashboard__main {
-    @apply space-y-8;
+    @apply space-y-5;
   }
   .home-hero {
-    @apply rounded-2xl border border-care-sage/80 bg-white px-6 py-7 shadow-card sm:px-8 sm:py-8;
+    @apply overflow-hidden rounded-2xl border border-care-sage/70 bg-white shadow-card;
+  }
+  .home-hero__grid {
+    @apply grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(180px,42%)];
+  }
+  .home-hero__content {
+    @apply px-6 py-7 sm:px-8 sm:py-8;
+  }
+  .home-hero__illustration {
+    @apply relative hidden min-h-[180px] bg-gradient-to-br from-care-mint/20 via-care-sage/30 to-care-cream lg:block;
+  }
+  .home-hero__scene {
+    @apply absolute inset-0 h-full w-full;
   }
   .home-hero__eyebrow {
     @apply text-sm font-medium text-care-stone;
   }
   .home-hero__title {
-    @apply mt-1 font-serif text-3xl font-semibold tracking-tight text-care-forest sm:text-4xl;
+    @apply mt-1 font-serif text-3xl font-semibold tracking-tight text-care-forest sm:text-[2.25rem] sm:leading-tight;
   }
   .home-hero__lead {
-    @apply mt-3 max-w-2xl text-base leading-relaxed text-care-stone;
+    @apply mt-3 max-w-xl text-[0.9375rem] leading-relaxed text-care-stone;
+  }
+  .home-hero__badges {
+    @apply mt-5 flex flex-wrap gap-2;
+  }
+  .home-hero__badge {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-care-sage bg-white px-3 py-1.5 text-xs font-medium text-care-bark;
   }
   .home-actions {
-    @apply grid gap-4 sm:grid-cols-1 xl:grid-cols-3;
+    @apply grid gap-4 sm:grid-cols-2;
   }
   .home-action-card {
-    @apply flex w-full flex-col items-start gap-4 rounded-2xl border border-care-sage/90 bg-white p-5 text-left shadow-card transition-all duration-200 hover:border-care-olive/40 hover:shadow-cardHover sm:p-6;
+    @apply relative flex w-full flex-col items-start gap-3 overflow-hidden rounded-2xl border border-care-sage/80 bg-white p-5 text-left shadow-card transition-all duration-200 hover:border-care-olive/40 hover:shadow-cardHover sm:p-6;
   }
   .home-action-card--featured {
-    @apply border-care-forest/25 bg-gradient-to-br from-white via-white to-care-mint/20 ring-1 ring-care-forest/10;
+    @apply border-care-olive/35 bg-white;
   }
   .home-action-card__icon {
-    @apply flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold;
+    @apply flex h-11 w-11 items-center justify-center rounded-xl;
   }
   .home-action-card__icon--luma {
-    @apply bg-care-forest text-white;
+    @apply rounded-full bg-care-forest text-white;
   }
   .home-action-card__icon--coach {
-    @apply bg-care-sky text-care-skyDark;
-  }
-  .home-action-card__icon--quick {
-    @apply bg-care-amber text-care-amberDark;
+    @apply rounded-xl bg-care-sky text-care-skyDark;
   }
   .home-action-card__body {
     @apply flex flex-col gap-1.5;
@@ -766,32 +820,44 @@
   .home-action-card__cta {
     @apply mt-auto text-sm font-semibold text-care-forest;
   }
+  .home-action-card__cta--coach {
+    @apply text-care-skyDark;
+  }
+  .home-action-card__wave {
+    @apply pointer-events-none absolute bottom-0 right-0 h-12 w-28 text-care-forest;
+  }
   .home-today-panel {
-    @apply rounded-2xl border border-care-sage/90 bg-white p-5 shadow-card sm:p-6;
+    @apply rounded-2xl border border-care-sage/80 bg-white p-5 shadow-card sm:p-6;
   }
   .home-today-panel__header {
-    @apply mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-care-sage/70 pb-4;
+    @apply mb-4;
+  }
+  .home-today-panel__header--with-link {
+    @apply flex flex-wrap items-start justify-between gap-3;
   }
   .home-today-panel__title {
     @apply font-serif text-xl font-semibold text-care-forest;
   }
   .home-today-panel__subtitle {
-    @apply mt-1 text-sm text-care-stone;
+    @apply mt-0.5 text-sm text-care-stone;
   }
   .home-today-panel__link {
     @apply text-sm font-semibold text-care-forest no-underline hover:underline;
   }
   .home-today-panel__empty {
-    @apply rounded-xl border border-dashed border-care-sage bg-care-cream/40 px-5 py-8 text-center;
+    @apply flex items-start gap-4 rounded-xl border border-dashed border-care-sage/90 bg-care-cream/30 px-5 py-8;
+  }
+  .home-today-panel__empty-icon {
+    @apply shrink-0 text-care-stone/70;
   }
   .home-today-panel__empty-title {
-    @apply font-serif text-base font-semibold text-care-forest;
+    @apply font-medium text-care-bark;
   }
   .home-today-panel__empty-text {
-    @apply mx-auto mt-2 max-w-md text-sm leading-relaxed text-care-stone;
+    @apply text-sm leading-relaxed text-care-stone;
   }
   .home-today-panel__add {
-    @apply mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-care-sage bg-care-cream/30 px-4 py-3 text-sm font-semibold text-care-forest transition-colors hover:border-care-olive/50 hover:bg-care-mint/20 sm:w-auto;
+    @apply mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-care-sage bg-white px-4 py-2.5 text-sm font-medium text-care-bark transition-colors hover:border-care-olive/50 hover:bg-care-cream/60;
   }
   .home-log-list {
     @apply list-none space-y-2 p-0;
@@ -851,37 +917,58 @@
     @apply mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-care-stone transition-colors group-hover:bg-care-mint/30 group-hover:text-care-forest;
   }
   .home-sidebar {
-    @apply space-y-4 lg:sticky lg:top-24;
+    @apply space-y-4 lg:sticky lg:top-6;
   }
   .home-sidebar-card {
-    @apply rounded-2xl border border-care-sage/90 bg-white p-5 shadow-card;
+    @apply rounded-2xl border border-care-sage/80 bg-white p-5 shadow-card;
   }
   .home-sidebar-card--links {
-    @apply bg-care-cream/40;
+    @apply bg-white;
   }
   .home-sidebar-card__title {
     @apply font-serif text-base font-semibold text-care-forest;
   }
   .home-sidebar-tips {
-    @apply mt-3 list-none space-y-3 p-0 text-sm leading-relaxed text-care-stone;
+    @apply mt-4 list-none space-y-4 p-0;
   }
-  .home-sidebar-tips strong {
+  .home-sidebar-tip {
+    @apply flex items-start gap-3 text-sm leading-relaxed text-care-stone;
+  }
+  .home-sidebar-tip__icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full;
+  }
+  .home-sidebar-tip__icon--luma {
+    @apply bg-care-forest text-white;
+  }
+  .home-sidebar-tip__icon--coach {
+    @apply bg-care-sky text-care-skyDark;
+  }
+  .home-sidebar-tip strong {
     @apply font-semibold text-care-bark;
   }
   .home-sidebar-links {
-    @apply mt-3 flex flex-col gap-1;
+    @apply mt-3 flex flex-col;
   }
   .home-sidebar-link {
-    @apply flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-care-bark no-underline transition-colors hover:bg-white hover:text-care-forest;
+    @apply flex items-center justify-between border-t border-care-sage/70 px-1 py-3.5 text-sm font-medium text-care-bark no-underline transition-colors first:border-t-0 hover:text-care-forest;
+  }
+  .home-sidebar-link__label {
+    @apply inline-flex items-center gap-3;
+  }
+  .home-sidebar-link__label svg {
+    @apply text-care-stone;
+  }
+  .home-sidebar-link__chevron {
+    @apply text-care-stone/60;
   }
   .home-affirmation-card {
-    @apply relative overflow-hidden rounded-2xl border border-care-sage/90 bg-white shadow-card;
+    @apply relative overflow-hidden rounded-2xl border border-care-sage/80 bg-white shadow-card;
   }
   .home-affirmation-card__content {
-    @apply relative z-10 px-5 pb-20 pt-5;
+    @apply relative z-10 px-5 pb-16 pt-5;
   }
   .home-affirmation-card__heart {
-    @apply inline-flex rounded-full bg-care-mint/40 p-2 text-care-forest;
+    @apply inline-flex rounded-full bg-care-mint/50 p-2 text-care-forest;
   }
   .home-affirmation-card__headline {
     @apply mt-3 font-serif text-lg font-semibold leading-snug text-care-forest;
@@ -890,13 +977,13 @@
     @apply mt-2 text-sm leading-relaxed text-care-stone;
   }
   .home-affirmation-card__scene {
-    @apply pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-care-mint/70 via-care-mint/35 to-transparent;
+    @apply pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-care-mint/60 via-care-mint/25 to-transparent;
   }
   .home-affirmation-card__hills {
-    @apply absolute inset-x-0 bottom-0 h-full w-full text-care-olive/80;
+    @apply absolute inset-x-0 bottom-0 h-full w-full text-care-olive/70;
   }
   .home-affirmation-card__leaves {
-    @apply absolute inset-x-0 bottom-0 h-full w-full text-care-forest/50;
+    @apply absolute inset-x-0 bottom-0 h-full w-full text-care-forest/45;
   }
   .home-active-flow {
     @apply space-y-6;

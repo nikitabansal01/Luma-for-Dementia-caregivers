@@ -12,7 +12,7 @@ module.exports = {
           cream: "#faf9f6",
           sage: "#e8ede8",
           mint: "#d4e5d9",
-          forest: "#2d5a3d",
+          forest: "#1A3C34",
           olive: "#5c7c64",
           stone: "#6b6b6b",
           bark: "#3d3d3d",

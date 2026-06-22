@@ -260,23 +260,7 @@ export default function CareProfileForm({
         />
 
         <div className="care-profile-form__section-body space-y-4">
-          <div className="care-profile-form__row">
-            <div className="care-profile-form__field">
-              <label htmlFor="care-recipient-name" className="care-profile-form__label">
-                Their name or nickname{" "}
-                <span className="font-normal text-care-stone">(optional)</span>
-              </label>
-              <input
-                id="care-recipient-name"
-                type="text"
-                value={values.care_recipient_name}
-                onChange={(e) => setValues((v) => ({ ...v, care_recipient_name: e.target.value }))}
-                placeholder="e.g. Mom, Robert"
-                autoComplete="off"
-                maxLength={60}
-              />
-            </div>
-
+          <div className="care-profile-form__row care-profile-form__row--duo">
             <div className="care-profile-form__field">
               <label htmlFor="care-relationship" className="care-profile-form__label">
                 Who are you caring for?
@@ -300,9 +284,7 @@ export default function CareProfileForm({
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="care-profile-form__row">
             <div className="care-profile-form__field">
               <label htmlFor="care-age-range" className="care-profile-form__label">
                 Age range
@@ -326,7 +308,9 @@ export default function CareProfileForm({
                 ))}
               </select>
             </div>
+          </div>
 
+          <div className="care-profile-form__row care-profile-form__row--duo">
             <div className="care-profile-form__field">
               <label htmlFor="care-diagnosis" className="care-profile-form__label">
                 Diagnosis journey
