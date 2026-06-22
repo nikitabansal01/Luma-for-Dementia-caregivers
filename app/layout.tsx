@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="en" className={`${dmSans.variable} ${lora.variable}`}>
       <body className="min-h-screen bg-care-cream font-sans text-care-bark antialiased">
         <nav className="sticky top-0 z-10 border-b border-care-sage bg-white/95 shadow-card backdrop-blur-sm">
-          <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
             <Link
               href="/"
               className="font-serif text-lg font-semibold text-care-forest no-underline hover:text-care-olive"
@@ -45,7 +45,7 @@ export default function RootLayout({
             </div>
           </div>
         </nav>
-        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { CareRecipient } from "@/src/lib/repo";
 import { saveCareProfileAction } from "../actions";
 import CareProfileForm, {
@@ -10,12 +11,18 @@ import CareProfileForm, {
 } from "../CareProfileForm";
 
 export default function ProfileClient({ recipient }: { recipient: CareRecipient }) {
+  const router = useRouter();
+
   async function handleSubmit(values: CareProfileFormValues) {
     const validationError = validateCareProfileFormValues(values);
     if (validationError) {
       return { success: false, error: validationError };
     }
-    return saveCareProfileAction(careProfileFormToPayload(values));
+    const result = await saveCareProfileAction(careProfileFormToPayload(values));
+    if (result?.success) {
+      router.refresh();
+    }
+    return result;
   }
 
   return (
@@ -23,11 +30,11 @@ export default function ProfileClient({ recipient }: { recipient: CareRecipient 
       <header>
         <h1 className="font-serif text-2xl font-semibold text-care-forest sm:text-3xl">Profile</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-care-stone">
-          Update who you care for and their dementia stage. This appears in your clinician synopsis.
+          Your email, what brought you here, and who you care for. Care details appear in your clinician synopsis.
         </p>
       </header>
 
-      <div className="card max-w-lg">
+      <div className="max-w-5xl">
         <CareProfileForm recipient={recipient} onSubmit={handleSubmit} submitLabel="Save profile" />
       </div>
 

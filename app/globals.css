@@ -622,7 +622,7 @@
     @apply fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-care-bark/40 p-4 pt-10 backdrop-blur-sm sm:items-center sm:p-6;
   }
   .onboarding-card {
-    @apply w-full max-w-lg shadow-cardHover;
+    @apply w-full max-w-lg shadow-cardHover lg:max-w-5xl;
   }
   .onboarding-banner {
     @apply flex flex-col gap-3 rounded-xl border border-care-amber/50 bg-care-amber/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between;
@@ -633,8 +633,38 @@
   .onboarding-banner__link {
     @apply shrink-0 text-sm font-semibold text-care-forest underline hover:text-care-olive;
   }
+  .care-profile-form__section {
+    @apply overflow-hidden rounded-xl border border-care-sage bg-white shadow-card;
+  }
+  .care-profile-form__section--you {
+    @apply border-t-4 border-t-care-skyDark;
+  }
+  .care-profile-form__section--care {
+    @apply border-t-4 border-t-care-forest;
+  }
+  .care-profile-form__section-header {
+    @apply border-b border-care-sage/80 bg-care-cream/50 px-4 py-4 sm:px-5 lg:flex lg:items-baseline lg:justify-between lg:gap-6;
+  }
+  .care-profile-form__section-body {
+    @apply px-4 py-4 sm:px-5 sm:py-5;
+  }
+  .care-profile-form__section-title {
+    @apply font-serif text-lg font-semibold text-care-forest;
+  }
+  .care-profile-form__section-lead {
+    @apply mt-1 text-sm leading-relaxed text-care-stone lg:mt-0 lg:max-w-md lg:text-right;
+  }
   .care-profile-form__disclaimer {
     @apply rounded-lg border border-care-sage bg-care-cream/80 px-3 py-2.5 text-xs leading-relaxed text-care-stone;
+  }
+  .care-profile-form__sections {
+    @apply flex flex-col gap-6;
+  }
+  .care-profile-form__row {
+    @apply grid gap-4 md:grid-cols-2 lg:grid-cols-3;
+  }
+  .care-profile-form__row--duo {
+    @apply grid gap-4 md:grid-cols-2;
   }
   .care-profile-form__field {
     @apply space-y-2;
@@ -646,7 +676,7 @@
     @apply text-xs leading-relaxed text-care-stone;
   }
   .care-profile-form__stage-grid {
-    @apply grid gap-2 sm:grid-cols-2;
+    @apply grid gap-2 sm:grid-cols-2 lg:grid-cols-4;
   }
   .care-profile-form__stage-option {
     @apply flex cursor-pointer items-start gap-2 rounded-lg border border-care-sage bg-white px-3 py-2.5 text-sm text-care-bark transition hover:border-care-forest/30 has-[:checked]:border-care-forest has-[:checked]:bg-care-mint/25;
@@ -665,5 +695,208 @@
   }
   .care-profile-form__actions {
     @apply flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap;
+  }
+
+  /* Home dashboard — production-style Today view */
+  .home-shell {
+    @apply space-y-6;
+  }
+  .home-dashboard {
+    @apply grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,20rem)] lg:items-start;
+  }
+  .home-dashboard__main {
+    @apply space-y-8;
+  }
+  .home-hero {
+    @apply rounded-2xl border border-care-sage/80 bg-white px-6 py-7 shadow-card sm:px-8 sm:py-8;
+  }
+  .home-hero__eyebrow {
+    @apply text-sm font-medium text-care-stone;
+  }
+  .home-hero__title {
+    @apply mt-1 font-serif text-3xl font-semibold tracking-tight text-care-forest sm:text-4xl;
+  }
+  .home-hero__lead {
+    @apply mt-3 max-w-2xl text-base leading-relaxed text-care-stone;
+  }
+  .home-actions {
+    @apply grid gap-4 sm:grid-cols-1 xl:grid-cols-3;
+  }
+  .home-action-card {
+    @apply flex w-full flex-col items-start gap-4 rounded-2xl border border-care-sage/90 bg-white p-5 text-left shadow-card transition-all duration-200 hover:border-care-olive/40 hover:shadow-cardHover sm:p-6;
+  }
+  .home-action-card--featured {
+    @apply border-care-forest/25 bg-gradient-to-br from-white via-white to-care-mint/20 ring-1 ring-care-forest/10;
+  }
+  .home-action-card__icon {
+    @apply flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold;
+  }
+  .home-action-card__icon--luma {
+    @apply bg-care-forest text-white;
+  }
+  .home-action-card__icon--coach {
+    @apply bg-care-sky text-care-skyDark;
+  }
+  .home-action-card__icon--quick {
+    @apply bg-care-amber text-care-amberDark;
+  }
+  .home-action-card__body {
+    @apply flex flex-col gap-1.5;
+  }
+  .home-action-card__title {
+    @apply font-serif text-lg font-semibold text-care-forest;
+  }
+  .home-action-card__desc {
+    @apply text-sm leading-relaxed text-care-stone;
+  }
+  .home-action-card__cta {
+    @apply mt-auto text-sm font-semibold text-care-forest;
+  }
+  .home-today-panel {
+    @apply rounded-2xl border border-care-sage/90 bg-white p-5 shadow-card sm:p-6;
+  }
+  .home-today-panel__header {
+    @apply mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-care-sage/70 pb-4;
+  }
+  .home-today-panel__title {
+    @apply font-serif text-xl font-semibold text-care-forest;
+  }
+  .home-today-panel__subtitle {
+    @apply mt-1 text-sm text-care-stone;
+  }
+  .home-today-panel__link {
+    @apply text-sm font-semibold text-care-forest no-underline hover:underline;
+  }
+  .home-today-panel__empty {
+    @apply rounded-xl border border-dashed border-care-sage bg-care-cream/40 px-5 py-8 text-center;
+  }
+  .home-today-panel__empty-title {
+    @apply font-serif text-base font-semibold text-care-forest;
+  }
+  .home-today-panel__empty-text {
+    @apply mx-auto mt-2 max-w-md text-sm leading-relaxed text-care-stone;
+  }
+  .home-today-panel__add {
+    @apply mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-care-sage bg-care-cream/30 px-4 py-3 text-sm font-semibold text-care-forest transition-colors hover:border-care-olive/50 hover:bg-care-mint/20 sm:w-auto;
+  }
+  .home-log-list {
+    @apply list-none space-y-2 p-0;
+  }
+  .home-log-row {
+    @apply flex items-start gap-3 rounded-xl border border-care-sage/70 bg-care-cream/20 px-3 py-3 no-underline transition-all hover:border-care-olive/40 hover:bg-white hover:shadow-sm sm:gap-4 sm:px-4;
+  }
+  .home-log-row__time {
+    @apply flex w-14 shrink-0 flex-col items-center pt-0.5 sm:w-16;
+  }
+  .home-log-row__time-primary {
+    @apply text-center text-sm font-semibold tabular-nums leading-tight text-care-forest;
+  }
+  .home-log-row__time-secondary {
+    @apply mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-care-stone;
+  }
+  .home-log-row__main {
+    @apply min-w-0 flex-1 space-y-1.5;
+  }
+  .home-log-row__headline {
+    @apply flex flex-wrap items-center gap-x-2 gap-y-1;
+  }
+  .home-log-row__dot {
+    @apply h-2.5 w-2.5 shrink-0 rounded-full;
+  }
+  .home-log-row__dot--mild {
+    @apply bg-care-forest;
+  }
+  .home-log-row__dot--moderate {
+    @apply bg-care-amberDark;
+  }
+  .home-log-row__dot--severe {
+    @apply bg-red-500;
+  }
+  .home-log-row__behavior {
+    @apply font-serif text-base font-semibold text-care-bark;
+  }
+  .home-log-row__severity-label {
+    @apply text-xs font-medium text-care-stone;
+  }
+  .home-log-row__outcome {
+    @apply ml-0 sm:ml-1;
+  }
+  .home-log-row__meta {
+    @apply flex flex-wrap items-center gap-x-2 gap-y-1;
+  }
+  .home-log-row__chip {
+    @apply inline-flex items-center rounded-md border border-care-sage/80 bg-white px-2 py-0.5 text-xs font-medium text-care-bark;
+  }
+  .home-log-row__chip--strategy {
+    @apply border-care-mint bg-care-mint/20 text-care-forest;
+  }
+  .home-log-row__preview {
+    @apply min-w-0 flex-1 truncate text-xs italic text-care-stone sm:text-sm;
+  }
+  .home-log-row__chevron {
+    @apply mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-care-stone transition-colors group-hover:bg-care-mint/30 group-hover:text-care-forest;
+  }
+  .home-sidebar {
+    @apply space-y-4 lg:sticky lg:top-24;
+  }
+  .home-sidebar-card {
+    @apply rounded-2xl border border-care-sage/90 bg-white p-5 shadow-card;
+  }
+  .home-sidebar-card--links {
+    @apply bg-care-cream/40;
+  }
+  .home-sidebar-card__title {
+    @apply font-serif text-base font-semibold text-care-forest;
+  }
+  .home-sidebar-tips {
+    @apply mt-3 list-none space-y-3 p-0 text-sm leading-relaxed text-care-stone;
+  }
+  .home-sidebar-tips strong {
+    @apply font-semibold text-care-bark;
+  }
+  .home-sidebar-links {
+    @apply mt-3 flex flex-col gap-1;
+  }
+  .home-sidebar-link {
+    @apply flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-care-bark no-underline transition-colors hover:bg-white hover:text-care-forest;
+  }
+  .home-affirmation-card {
+    @apply relative overflow-hidden rounded-2xl border border-care-sage/90 bg-white shadow-card;
+  }
+  .home-affirmation-card__content {
+    @apply relative z-10 px-5 pb-20 pt-5;
+  }
+  .home-affirmation-card__heart {
+    @apply inline-flex rounded-full bg-care-mint/40 p-2 text-care-forest;
+  }
+  .home-affirmation-card__headline {
+    @apply mt-3 font-serif text-lg font-semibold leading-snug text-care-forest;
+  }
+  .home-affirmation-card__body {
+    @apply mt-2 text-sm leading-relaxed text-care-stone;
+  }
+  .home-affirmation-card__scene {
+    @apply pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-care-mint/70 via-care-mint/35 to-transparent;
+  }
+  .home-affirmation-card__hills {
+    @apply absolute inset-x-0 bottom-0 h-full w-full text-care-olive/80;
+  }
+  .home-affirmation-card__leaves {
+    @apply absolute inset-x-0 bottom-0 h-full w-full text-care-forest/50;
+  }
+  .home-active-flow {
+    @apply space-y-6;
+  }
+  .home-flow-header {
+    @apply space-y-3 border-b border-care-sage/70 pb-5;
+  }
+  .home-flow-back {
+    @apply text-sm font-semibold text-care-forest transition-colors hover:text-care-olive;
+  }
+  .home-flow-title {
+    @apply font-serif text-2xl font-semibold text-care-forest sm:text-3xl;
+  }
+  .home-flow-subtitle {
+    @apply mt-2 max-w-2xl text-base leading-relaxed text-care-stone;
   }
 }

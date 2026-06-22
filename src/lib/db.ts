@@ -88,6 +88,15 @@ function initSchema(db: Database.Database): void {
   try {
     db.exec(`ALTER TABLE care_recipients ADD COLUMN onboarding_skipped_at TEXT`);
   } catch {}
+  try {
+    db.exec(`ALTER TABLE care_recipients ADD COLUMN visitor_email TEXT`);
+  } catch {}
+  try {
+    db.exec(`ALTER TABLE care_recipients ADD COLUMN visit_purpose TEXT`);
+  } catch {}
+  try {
+    db.exec(`ALTER TABLE care_recipients ADD COLUMN visitor_name TEXT`);
+  } catch {}
 }
 
 let dbInstance: Database.Database | null = null;

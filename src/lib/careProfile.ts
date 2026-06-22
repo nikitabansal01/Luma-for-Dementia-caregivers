@@ -33,6 +33,15 @@ export const LIVING_SITUATIONS = [
 
 export type LivingSituationCode = (typeof LIVING_SITUATIONS)[number]["code"];
 
+export const VISIT_PURPOSES = [
+  { code: "CURIOUS", label: "Curious about your work" },
+  { code: "COLLABORATE", label: "Would love to collaborate on this further" },
+  { code: "CAREGIVER", label: "Exploring this as a caregiver" },
+  { code: "OTHER", label: "Something else" },
+] as const;
+
+export type VisitPurposeCode = (typeof VISIT_PURPOSES)[number]["code"];
+
 const STAGE_LABELS = Object.fromEntries(DEMENTIA_STAGES.map((s) => [s.code, s.label]));
 const RELATIONSHIP_LABELS = Object.fromEntries(
   CAREGIVER_RELATIONSHIPS.map((r) => [r.code, r.label])
@@ -60,6 +69,13 @@ export function getCaregiverRelationshipSynopsisLabel(code: string | null | unde
 export function getLivingSituationLabel(code: string | null | undefined): string | null {
   if (!code) return null;
   return LIVING_LABELS[code] ?? code;
+}
+
+const PURPOSE_LABELS = Object.fromEntries(VISIT_PURPOSES.map((p) => [p.code, p.label]));
+
+export function getVisitPurposeLabel(code: string | null | undefined): string | null {
+  if (!code) return null;
+  return PURPOSE_LABELS[code] ?? code;
 }
 
 export type CareProfileInput = {

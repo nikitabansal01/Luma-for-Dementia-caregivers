@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "./db";
 import {
   getOrCreateDefaultRecipientFromCookie,
+  readCareProfileCookie,
   writeCareProfileCookie,
 } from "./careProfileCookie";
 import { BEHAVIOR_CODES } from "./behaviorMap";
@@ -106,6 +107,9 @@ export type CareRecipient = {
   caregiver_relationship: string | null;
   age: number | null;
   living_situation: string | null;
+  visitor_name: string | null;
+  visitor_email: string | null;
+  visit_purpose: string | null;
   onboarding_completed_at: string | null;
   onboarding_skipped_at: string | null;
   created_at: string;
@@ -128,9 +132,13 @@ const livingSituationEnum = z.enum([
   "MEMORY_CARE",
   "OTHER",
 ]);
+const visitPurposeEnum = z.enum(["CURIOUS", "COLLABORATE", "CAREGIVER", "OTHER"]);
 
 export const saveCareProfileSchema = z.object({
-  name: z.string().trim().min(1, "Add a first name or nickname").max(60),
+  visitor_name: z.string().trim().min(1, "Add your name or nickname").max(60),
+  visitor_email: z.string().trim().email("Enter a valid email address").max(120),
+  visit_purpose: visitPurposeEnum,
+  name: z.string().trim().max(60).optional(),
   stage: dementiaStageEnum,
   caregiver_relationship: caregiverRelationshipEnum,
   age: z.number().int().min(1, "Enter a valid age").max(120),
@@ -138,6 +146,22 @@ export const saveCareProfileSchema = z.object({
 });
 
 export type SaveCareProfilePayload = z.infer<typeof saveCareProfileSchema>;
+
+function persistCareProfileCookie(recipient: CareRecipient): void {
+  try {
+    writeCareProfileCookie(recipient);
+  } catch (err) {
+    console.error("Could not write care profile cookie:", err);
+  }
+}
+
+function readCareProfileCookieSafe(): CareRecipient | null {
+  try {
+    return readCareProfileCookie();
+  } catch {
+    return null;
+  }
+}
 
 function mapCareRecipientRow(row: Record<string, unknown>): CareRecipient {
   return {
@@ -147,6 +171,9 @@ function mapCareRecipientRow(row: Record<string, unknown>): CareRecipient {
     caregiver_relationship: (row.caregiver_relationship as string | null) ?? null,
     age: row.age != null ? Number(row.age) : null,
     living_situation: (row.living_situation as string | null) ?? null,
+    visitor_name: (row.visitor_name as string | null) ?? null,
+    visitor_email: (row.visitor_email as string | null) ?? null,
+    visit_purpose: (row.visit_purpose as string | null) ?? null,
     onboarding_completed_at: (row.onboarding_completed_at as string | null) ?? null,
     onboarding_skipped_at: (row.onboarding_skipped_at as string | null) ?? null,
     created_at: row.created_at as string,
@@ -161,10 +188,14 @@ export function saveCareProfile(payload: unknown): CareRecipient {
   const parsed = saveCareProfileSchema.parse(payload);
   const recipient = getOrCreateDefaultRecipient();
   const now = new Date().toISOString();
+  const careRecipientName = parsed.name?.trim() || "";
 
   const updated: CareRecipient = {
     ...recipient,
-    name: parsed.name,
+    visitor_name: parsed.visitor_name,
+    visitor_email: parsed.visitor_email,
+    visit_purpose: parsed.visit_purpose,
+    name: careRecipientName,
     stage: parsed.stage,
     caregiver_relationship: parsed.caregiver_relationship,
     age: parsed.age,
@@ -177,6 +208,9 @@ export function saveCareProfile(payload: unknown): CareRecipient {
     const db = getDb();
     db.prepare(
       `UPDATE care_recipients SET
+        visitor_name = ?,
+        visitor_email = ?,
+        visit_purpose = ?,
         name = ?,
         stage = ?,
         caregiver_relationship = ?,
@@ -186,7 +220,10 @@ export function saveCareProfile(payload: unknown): CareRecipient {
         onboarding_skipped_at = NULL
       WHERE id = ?`
     ).run(
-      parsed.name,
+      parsed.visitor_name,
+      parsed.visitor_email,
+      parsed.visit_purpose,
+      careRecipientName,
       parsed.stage,
       parsed.caregiver_relationship,
       parsed.age,
@@ -196,10 +233,12 @@ export function saveCareProfile(payload: unknown): CareRecipient {
     );
 
     const row = db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(recipient.id);
-    return mapCareRecipientRow(row as Record<string, unknown>);
+    const saved = mapCareRecipientRow(row as Record<string, unknown>);
+    persistCareProfileCookie(saved);
+    return saved;
   } catch (err) {
     console.error("SQLite saveCareProfile failed, using cookie fallback:", err);
-    writeCareProfileCookie(updated);
+    persistCareProfileCookie(updated);
     return updated;
   }
 }
@@ -219,10 +258,12 @@ export function skipOnboarding(): CareRecipient {
       recipient.id
     );
     const row = db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(recipient.id);
-    return mapCareRecipientRow(row as Record<string, unknown>);
+    const saved = mapCareRecipientRow(row as Record<string, unknown>);
+    persistCareProfileCookie(saved);
+    return saved;
   } catch (err) {
     console.error("SQLite skipOnboarding failed, using cookie fallback:", err);
-    writeCareProfileCookie(updated);
+    persistCareProfileCookie(updated);
     return updated;
   }
 }
@@ -287,12 +328,27 @@ function rowToBehaviorLog(row: Record<string, unknown>): BehaviorLog {
 }
 
 export function getOrCreateDefaultRecipient(): CareRecipient {
+  const cookieProfile = readCareProfileCookieSafe();
+
   try {
     const db = getDb();
     const row = db.prepare("SELECT * FROM care_recipients LIMIT 1").get() as
       | Record<string, unknown>
       | undefined;
-    if (row) return mapCareRecipientRow(row);
+    if (row) {
+      const fromDb = mapCareRecipientRow(row);
+      if (
+        cookieProfile &&
+        cookieProfile.visitor_email &&
+        !fromDb.visitor_email &&
+        cookieProfile.onboarding_completed_at
+      ) {
+        return cookieProfile;
+      }
+      return fromDb;
+    }
+    if (cookieProfile) return cookieProfile;
+
     const id = randomUUID();
     const created_at = new Date().toISOString();
     db.prepare(
@@ -303,7 +359,7 @@ export function getOrCreateDefaultRecipient(): CareRecipient {
     );
   } catch (err) {
     console.error("SQLite getOrCreateDefaultRecipient failed, using cookie fallback:", err);
-    return getOrCreateDefaultRecipientFromCookie();
+    return cookieProfile ?? getOrCreateDefaultRecipientFromCookie();
   }
 }
 

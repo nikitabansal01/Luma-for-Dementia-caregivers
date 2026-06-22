@@ -11,7 +11,7 @@ import {
   saveCareProfile,
   skipOnboarding,
 } from "@/src/lib/repo";
-import type { ReportData } from "@/src/lib/repo";
+import type { ReportData, CareRecipient } from "@/src/lib/repo";
 import { saveCoachRules, getRecommendations } from "@/src/lib/coach";
 import { encodeCoachOutcomeDetail } from "@/src/lib/logUtils";
 import type { CoachOutcomeUi } from "@/src/lib/coachFlowCatalog";
@@ -361,18 +361,18 @@ export async function getCareProfileAction() {
 }
 
 export type SaveCareProfileResult =
-  | { success: true }
+  | { success: true; recipient: CareRecipient }
   | { success: false; error: string };
 
 export async function saveCareProfileAction(
   payload: unknown
 ): Promise<SaveCareProfileResult> {
   try {
-    saveCareProfile(payload);
+    const recipient = saveCareProfile(payload);
     revalidatePath("/");
     revalidatePath("/profile");
     revalidatePath("/report");
-    return { success: true };
+    return { success: true, recipient };
   } catch (err) {
     if (err instanceof z.ZodError) {
       return { success: false, error: err.issues[0]?.message ?? "Invalid profile data" };
@@ -386,9 +386,9 @@ export async function saveCareProfileAction(
 
 export async function skipOnboardingAction(): Promise<SaveCareProfileResult> {
   try {
-    skipOnboarding();
+    const recipient = skipOnboarding();
     revalidatePath("/");
-    return { success: true };
+    return { success: true, recipient };
   } catch (err) {
     return {
       success: false,
