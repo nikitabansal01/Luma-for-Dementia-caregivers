@@ -44,7 +44,6 @@ function buildNotes(step1Notes: string, afterTryNotes: string): string | undefin
 
 type CoachWizardProps = {
   onClose: () => void;
-  onQuickLog?: () => void;
 };
 
 function CoachStepper({ currentStep }: { currentStep: number }) {
@@ -129,7 +128,7 @@ function PrivacyNote({ className = "" }: { className?: string }) {
   );
 }
 
-export default function CoachWizard({ onClose, onQuickLog }: CoachWizardProps) {
+export default function CoachWizard({ onClose }: CoachWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -499,16 +498,6 @@ export default function CoachWizard({ onClose, onQuickLog }: CoachWizardProps) {
                 disabled={isSubmitting}
               >
                 Back
-              </button>
-            )}
-            {step === 4 && onQuickLog && (
-              <button
-                type="button"
-                onClick={onQuickLog}
-                className="btn-secondary sm:mr-auto"
-                disabled={isSubmitting}
-              >
-                Quick log
               </button>
             )}
             {step === 1 && (

@@ -15,7 +15,6 @@ import {
   notePreview,
 } from "@/src/lib/logUtils";
 import CoachWizard from "./CoachWizard";
-import QuickLogForm from "./QuickLogForm";
 import LumaCompanion from "./LumaCompanion";
 import OnboardingModal from "./OnboardingModal";
 
@@ -119,11 +118,11 @@ function TodayLogRow({
 
 function TodayLogsPanel({
   logs,
-  onQuickLog,
+  onLogAnother,
   customBehaviorLabels,
 }: {
   logs: BehaviorLog[];
-  onQuickLog: () => void;
+  onLogAnother: () => void;
   customBehaviorLabels: Record<string, string>;
 }) {
   return (
@@ -159,7 +158,7 @@ function TodayLogsPanel({
         </ul>
       )}
 
-      <button type="button" onClick={onQuickLog} className="home-today-panel__add">
+      <button type="button" onClick={onLogAnother} className="home-today-panel__add">
         <span aria-hidden>+</span>
         Log another incident
       </button>
@@ -170,11 +169,9 @@ function TodayLogsPanel({
 function HomeActionCards({
   onLuma,
   onCoach,
-  onQuickLog,
 }: {
   onLuma: () => void;
   onCoach: () => void;
-  onQuickLog: () => void;
 }) {
   return (
     <div className="home-actions">
@@ -202,19 +199,6 @@ function HomeActionCards({
           </span>
         </span>
         <span className="home-action-card__cta">Begin guided log →</span>
-      </button>
-
-      <button type="button" onClick={onQuickLog} className="home-action-card">
-        <span className="home-action-card__icon home-action-card__icon--quick" aria-hidden>
-          ✎
-        </span>
-        <span className="home-action-card__body">
-          <span className="home-action-card__title">Quick log</span>
-          <span className="home-action-card__desc">
-            Fast structured entry when you already know the details.
-          </span>
-        </span>
-        <span className="home-action-card__cta">Open form →</span>
       </button>
     </div>
   );
@@ -307,9 +291,6 @@ function HomeSidebar() {
           <li>
             <strong>Coach</strong> — best when you want prompts and immediate next-step ideas.
           </li>
-          <li>
-            <strong>Quick log</strong> — best when you are ready to enter fields directly.
-          </li>
         </ul>
       </div>
 
@@ -349,7 +330,7 @@ export default function HomeClient({
   careRecipient: CareRecipient;
   showOnboarding: boolean;
 }) {
-  const [mode, setMode] = useState<"coach" | "quick" | "luma" | null>(null);
+  const [mode, setMode] = useState<"coach" | "luma" | null>(null);
   const [customBehaviors, setCustomBehaviors] = useState(initialCustomBehaviors);
   const [customBehaviorLabels, setCustomBehaviorLabels] = useState(initialCustomBehaviorLabels);
 
@@ -358,18 +339,12 @@ export default function HomeClient({
     careRecipient.onboarding_skipped_at &&
     !careRecipient.onboarding_completed_at;
 
-  function openQuickLog() {
-    setMode("quick");
-  }
-
   const modeSubtitle =
     mode === "coach"
       ? "Log an incident, reflect on triggers, and get guided next steps."
       : mode === "luma"
         ? "Talk with Luma — she'll help capture what happened in your own words."
-        : mode === "quick"
-          ? "Enter the details directly when you already know what to record."
-          : null;
+        : null;
 
   return (
     <div className="home-shell">
@@ -398,15 +373,11 @@ export default function HomeClient({
               </p>
             </header>
 
-            <HomeActionCards
-              onLuma={() => setMode("luma")}
-              onCoach={() => setMode("coach")}
-              onQuickLog={openQuickLog}
-            />
+            <HomeActionCards onLuma={() => setMode("luma")} onCoach={() => setMode("coach")} />
 
             <TodayLogsPanel
               logs={todayLogs}
-              onQuickLog={openQuickLog}
+              onLogAnother={() => setMode("luma")}
               customBehaviorLabels={customBehaviorLabels}
             />
 
@@ -425,7 +396,7 @@ export default function HomeClient({
             </button>
             <div>
               <h1 className="home-flow-title">
-                {mode === "luma" ? "Talk with Luma" : mode === "coach" ? "Coach me now" : "Quick log"}
+                {mode === "luma" ? "Talk with Luma" : "Coach me now"}
               </h1>
               {modeSubtitle && <p className="home-flow-subtitle">{modeSubtitle}</p>}
             </div>
@@ -443,10 +414,7 @@ export default function HomeClient({
               }}
             />
           )}
-          {mode === "coach" && (
-            <CoachWizard onClose={() => setMode(null)} onQuickLog={openQuickLog} />
-          )}
-          {mode === "quick" && <QuickLogForm onClose={() => setMode(null)} />}
+          {mode === "coach" && <CoachWizard onClose={() => setMode(null)} />}
         </div>
       )}
     </div>
