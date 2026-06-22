@@ -1,17 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import type { LumaDraft } from "@/src/lib/lumaEngine";
 import type { RecommendationCard } from "@/src/lib/coachFlowRecommendations";
 import { formatLumaSessionSavedAt } from "@/src/lib/lumaSessionStorage";
 import LumaDraftFields from "./LumaDraftFields";
+import LumaDraftPreview from "./LumaDraftPreview";
+import LumaDraftSaveCta from "./LumaDraftSaveCta";
 import LumaSuggestionPanel from "./LumaSuggestionPanel";
 
 type CustomBehaviorOption = { code: string; label: string };
 
+type CustomStrategyOption = { code: string; label: string };
+
 type LumaFinalLogEditorProps = {
   draft: LumaDraft;
   customBehaviors: CustomBehaviorOption[];
+  customStrategies: CustomStrategyOption[];
+  customStrategyLabels: Record<string, string>;
   saving: boolean;
+  saveReady: boolean;
   lastAutoSavedAt: string | null;
   suggestions?: RecommendationCard[];
   onDraftChange: (draft: LumaDraft) => void;
@@ -22,35 +30,63 @@ type LumaFinalLogEditorProps = {
 export default function LumaFinalLogEditor({
   draft,
   customBehaviors,
+  customStrategies,
+  customStrategyLabels,
   saving,
+  saveReady,
   lastAutoSavedAt,
   suggestions,
   onDraftChange,
   onSave,
   onKeepTalking,
 }: LumaFinalLogEditorProps) {
+  const [editing, setEditing] = useState(false);
+
   return (
-    <div className="luma-companion__final-log">
+    <div className={`luma-companion__final-log${editing ? " luma-companion__final-log--editing" : ""}`}>
       <div className="luma-companion__final-log-header">
-        <h3 className="luma-companion__final-log-title">Review your log</h3>
-        <p className="luma-companion__final-log-lead">
-          Fix anything that looks off, then save when you&apos;re ready. Your edits auto-save locally
-          every few seconds so nothing is lost.
-        </p>
-        {lastAutoSavedAt && (
-          <p className="luma-companion__autosave-hint">
-            Auto-saved locally at {formatLumaSessionSavedAt(lastAutoSavedAt)}
-          </p>
-        )}
+        <p className="luma-companion__final-log-title">Review your draft</p>
+        <div className="luma-companion__final-log-actions">
+          <LumaDraftSaveCta saveReady={saveReady} saving={saving} onSave={onSave} />
+          {!editing ? (
+            <button
+              type="button"
+              className="luma-companion__summary-edit luma-companion__summary-edit--inline"
+              onClick={() => setEditing(true)}
+              aria-label="Edit draft note"
+              title="Edit draft note"
+            >
+              ✎
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="luma-companion__summary-done-edit luma-companion__summary-done-edit--inline"
+              onClick={() => setEditing(false)}
+            >
+              Done
+            </button>
+          )}
+        </div>
       </div>
 
-      <LumaDraftFields
-        draft={draft}
-        customBehaviors={customBehaviors}
-        saving={saving}
-        idPrefix="luma-final"
-        onDraftChange={onDraftChange}
-      />
+      {editing ? (
+        <LumaDraftFields
+          draft={draft}
+          customBehaviors={customBehaviors}
+          customStrategies={customStrategies}
+          saving={saving}
+          idPrefix="luma-final"
+          emptyDefaults
+          onDraftChange={onDraftChange}
+        />
+      ) : (
+        <LumaDraftPreview
+          draft={draft}
+          customStrategyLabels={customStrategyLabels}
+          emptyMessage="Nothing captured yet — keep talking or tap edit to fill in manually."
+        />
+      )}
 
       {suggestions != null && (
         <LumaSuggestionPanel
@@ -59,25 +95,20 @@ export default function LumaFinalLogEditor({
         />
       )}
 
-      <div className="luma-companion__final-log-actions">
-        <button
-          type="button"
-          onClick={onKeepTalking}
-          className="btn-secondary"
-          disabled={saving}
-        >
-          Keep talking
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={saving || !draft.behavior_code}
-          aria-busy={saving}
-        >
-          {saving ? "Saving…" : "Save to log"}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onKeepTalking}
+        className="luma-companion__keep-talking"
+        disabled={saving}
+      >
+        Keep talking
+      </button>
+
+      {lastAutoSavedAt && (
+        <p className="luma-companion__autosave-hint">
+          Draft backed up on this device at {formatLumaSessionSavedAt(lastAutoSavedAt)}.
+        </p>
+      )}
     </div>
   );
 }

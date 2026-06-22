@@ -11,9 +11,9 @@ import {
 } from "@/src/lib/episodeTiming";
 
 type EpisodeTimingSelectorProps = {
-  episodeRecency: EpisodeRecency;
-  episodeTimeOfDay: EpisodeTimeOfDay;
-  episodeDayContext: EpisodeDayContext;
+  episodeRecency?: EpisodeRecency;
+  episodeTimeOfDay?: EpisodeTimeOfDay;
+  episodeDayContext?: EpisodeDayContext;
   exactEpisodeAt: string;
   showExact: boolean;
   onRecencyChange: (value: EpisodeRecency) => void;
@@ -32,7 +32,7 @@ function OptionGroup<T extends string>({
 }: {
   question: string;
   options: { value: T; label: string }[];
-  value: T;
+  value?: T;
   onChange: (value: T) => void;
   name: string;
 }) {

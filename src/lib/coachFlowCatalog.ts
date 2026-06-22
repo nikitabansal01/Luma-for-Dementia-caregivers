@@ -95,6 +95,10 @@ export const COACH_FLOW_STRATEGIES: StrategyOption[] = [
 
 export const DID_NOT_TRY_CODE = "DID_NOT_TRY";
 
+export function isCustomStrategyCode(code: string): boolean {
+  return code.startsWith("CUSTOM_STRATEGY_");
+}
+
 export type CoachOutcomeUi =
   | "helped"
   | "helped_little"
@@ -128,8 +132,16 @@ export function getCoachFlowTriggerLabel(code: string): string {
   return TRIGGER_CODE_TO_LABEL[code] ?? code;
 }
 
-export function getStrategyLabel(code: string): string {
+export function getStrategyLabel(code: string, customStrategyLabels?: Record<string, string>): string {
+  if (customStrategyLabels?.[code]) return customStrategyLabels[code];
   return STRATEGY_CODE_TO_LABEL[code] ?? code;
+}
+
+export function strategyCodesToLabels(
+  codes: string[],
+  customStrategyLabels?: Record<string, string>
+): string[] {
+  return codes.map((code) => getStrategyLabel(code, customStrategyLabels));
 }
 
 export function mapCoachOutcomeToDb(
@@ -149,11 +161,6 @@ export function mapCoachOutcomeToDb(
   }
 }
 
-export function strategyCodesToLabels(codes: string[]): string[] {
-  return codes.map(getStrategyLabel);
-}
-
-/** Stored in behavior_detail to preserve coach-flow outcome labels in logs. */
 export const COACH_OUTCOME_DETAIL_PREFIX = "coach_outcome:";
 
 export function encodeCoachOutcomeDetail(outcome: CoachOutcomeUi): string {

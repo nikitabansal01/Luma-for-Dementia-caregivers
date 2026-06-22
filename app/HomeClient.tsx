@@ -158,15 +158,15 @@ function TodayLogsPanel({
       <div className={`home-today-panel__header${logs.length > 0 ? " home-today-panel__header--with-link" : ""}`}>
         <div>
           <div className="home-today-panel__title-row">
-            <h2 className="home-today-panel__title">Today&apos;s logs</h2>
+            <h2 className="home-today-panel__title">Today&apos;s notes</h2>
             {logs.length > 0 && (
               <span className="home-today-panel__count">{logs.length}</span>
             )}
           </div>
           <p className="home-today-panel__subtitle">
             {logs.length === 0
-              ? "Incidents you log today appear here."
-              : `${logs.length} incident${logs.length === 1 ? "" : "s"} captured today`}
+              ? "Observations you note today show up here."
+              : `${logs.length} observation${logs.length === 1 ? "" : "s"} noted today`}
           </p>
         </div>
         {logs.length > 0 && (
@@ -182,7 +182,7 @@ function TodayLogsPanel({
             <span className="home-today-panel__empty-icon">
               <EmptyLogsIcon />
             </span>
-            <p className="home-today-panel__empty-title">No logs for today yet</p>
+            <p className="home-today-panel__empty-title">No notes for today yet</p>
             <p className="home-today-panel__empty-text">
               Small notes add up — patterns help you and your care team prepare for visits.
             </p>
@@ -198,7 +198,7 @@ function TodayLogsPanel({
 
       <button type="button" onClick={onLogAnother} className="home-today-panel__add">
         <span aria-hidden>+</span>
-        Log another incident
+        Note another moment
       </button>
     </section>
   );
@@ -254,8 +254,7 @@ function HomeActionCards({
           <div className="home-action-card__body">
             <h3 className="home-action-card__title">Reflect with Luma</h3>
             <p className="home-action-card__desc">
-              Speak or type what happened in your own words — Luma helps you capture the observation and
-              build your log.
+              Speak or type what happened — Luma helps you capture it so patterns emerge over time.
             </p>
           </div>
         </div>
@@ -366,18 +365,24 @@ export default function HomeClient({
   todayLogs,
   customBehaviors: initialCustomBehaviors,
   customBehaviorLabels: initialCustomBehaviorLabels,
+  customStrategies: initialCustomStrategies,
+  customStrategyLabels: initialCustomStrategyLabels,
   careRecipient,
   showOnboarding,
 }: {
   todayLogs: BehaviorLog[];
   customBehaviors: CustomBehaviorOption[];
   customBehaviorLabels: Record<string, string>;
+  customStrategies: CustomBehaviorOption[];
+  customStrategyLabels: Record<string, string>;
   careRecipient: CareRecipient;
   showOnboarding: boolean;
 }) {
   const [mode, setMode] = useState<"coach" | "luma" | null>(null);
   const [customBehaviors, setCustomBehaviors] = useState(initialCustomBehaviors);
   const [customBehaviorLabels, setCustomBehaviorLabels] = useState(initialCustomBehaviorLabels);
+  const [customStrategies, setCustomStrategies] = useState(initialCustomStrategies);
+  const [customStrategyLabels, setCustomStrategyLabels] = useState(initialCustomStrategyLabels);
 
   const showProfileBanner =
     !showOnboarding &&
@@ -388,7 +393,7 @@ export default function HomeClient({
     mode === "coach"
       ? "Walk through a structured check-in — triggers, what you tried, and ideas for next time."
       : mode === "luma"
-        ? "Speak or type what happened — Luma helps you capture the observation and build your log."
+        ? "Speak or type what happened — Luma helps you capture it so patterns emerge over time."
         : null;
 
   return (
@@ -449,11 +454,18 @@ export default function HomeClient({
           {mode === "luma" && (
             <LumaCompanion
               customBehaviors={customBehaviors}
+              customStrategies={customStrategies}
               onClose={() => setMode(null)}
               onBehaviorsUpdated={(behaviors) => {
                 setCustomBehaviors(behaviors);
                 setCustomBehaviorLabels(
                   Object.fromEntries(behaviors.map((b) => [b.code, b.label]))
+                );
+              }}
+              onStrategiesUpdated={(strategies) => {
+                setCustomStrategies(strategies);
+                setCustomStrategyLabels(
+                  Object.fromEntries(strategies.map((s) => [s.code, s.label]))
                 );
               }}
             />

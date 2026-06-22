@@ -3,7 +3,7 @@
 import { SEVERITY_OPTIONS } from "@/src/lib/severityCatalog";
 
 type SeveritySelectorProps = {
-  value: number;
+  value?: number;
   onChange: (value: number) => void;
   disabled?: boolean;
   title?: string;

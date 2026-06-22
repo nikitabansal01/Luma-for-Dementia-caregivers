@@ -134,3 +134,54 @@ export function buildCareContextLine(profile: {
   const [first, ...rest] = parts;
   return `${first} — ${rest.join(", ")}`;
 }
+
+/** Fields from care profile used to personalize Luma conversation prompts. */
+export type LumaCareProfileInput = {
+  name: string;
+  stage: string | null;
+  caregiver_relationship: string | null;
+  age_range: string | null;
+  age: number | null;
+  living_situation: string | null;
+};
+
+/** Companion system-prompt block; empty when profile has no care context yet. */
+export function buildLumaCareProfileBrief(profile: LumaCareProfileInput): string {
+  const lines: string[] = [];
+
+  const name = profile.name.trim();
+  if (name && name !== "Default") {
+    lines.push(`Person they care for: ${name}`);
+  }
+
+  const stageLabel = getDementiaStageLabel(profile.stage);
+  if (stageLabel) {
+    lines.push(
+      profile.stage === "NOT_SURE" ? "Dementia stage: not sure yet" : `Dementia stage: ${stageLabel}`
+    );
+  }
+
+  const ageLabel = getAgeRangeLabel(profile.age_range);
+  if (ageLabel && profile.age_range !== "NOT_SURE") {
+    lines.push(`Age range: ${ageLabel}`);
+  } else if (profile.age != null && profile.age > 0) {
+    lines.push(`Age: ${profile.age}`);
+  }
+
+  const relation = getCaregiverRelationshipSynopsisLabel(profile.caregiver_relationship);
+  if (relation) {
+    lines.push(`Caregiver is their ${relation}`);
+  }
+
+  const living = getLivingSituationLabel(profile.living_situation);
+  if (living) {
+    lines.push(`Living situation: ${living}`);
+  }
+
+  if (lines.length === 0) return "";
+
+  return `\n## Care context (from their saved profile)
+${lines.map((l) => `- ${l}`).join("\n")}
+
+Use this to tailor warmth and dementia-aware context when it genuinely helps. Do not recite the profile back or mention "profile" or "onboarding". If the conversation contradicts the profile, trust what they say now.`;
+}

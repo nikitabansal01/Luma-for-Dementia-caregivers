@@ -14,7 +14,9 @@ import {
 } from "./coachFlowCatalog";
 import type { EpisodeDayContext, EpisodeRecency, EpisodeTimeOfDay } from "./episodeTiming";
 import type { LumaDraft, LumaStep } from "./lumaEngine";
-import { applyHeuristicExtraction, isGreetingOrSmallTalk, keywordsToBehaviorLabel } from "./lumaEngine";
+import { applyHeuristicExtraction, isGreetingOrSmallTalk, isKnownStrategyCode, keywordsToBehaviorLabel, keywordsToShortLabel } from "./lumaEngine";
+import { findCustomStrategyByLabel } from "./customStrategies";
+import { buildStrategyMirrorMessage } from "./lumaConversationDesign";
 import {
   applyDraftInference,
   buildBehaviorMirrorMessage,
@@ -28,9 +30,15 @@ import {
   userConfirmedSave,
   userSignalsWrappingUp,
 } from "./lumaConversationDesign";
+import {
+  buildCareContextLine,
+  buildLumaCareProfileBrief,
+  type LumaCareProfileInput,
+} from "./careProfile";
 import { z } from "zod";
 
 export type LumaChatTurn = { role: "user" | "assistant"; content: string };
+export type { LumaCareProfileInput };
 
 const episodeRecencySchema = z.enum([
   "just_now",
@@ -71,9 +79,11 @@ const draftUpdatesSchema = z.object({
   behavior_label: z.string().nullable().optional(),
   behavior_is_custom: z.boolean().optional(),
   proposed_custom_behavior_label: z.string().nullable().optional(),
+  proposed_custom_strategy_label: z.string().nullable().optional(),
   episode_recency: episodeRecencySchema.nullable().optional(),
   episode_time_of_day: episodeTimeSchema.nullable().optional(),
   episode_day_context: episodeDaySchema.nullable().optional(),
+  episode_frequency: z.string().nullable().optional(),
   severity: z.number().int().min(1).max(3).nullable().optional(),
   trigger_hypotheses: z.array(z.string()).optional(),
   trigger_detail: z.string().nullable().optional(),
@@ -95,6 +105,7 @@ export type LumaLlmResult = {
   draft: LumaDraft;
   step: LumaStep | "confirm" | "done";
   needsCustomBehavior?: { label: string };
+  needsCustomStrategy?: { label: string };
 };
 
 type LlmProvider = "openai" | "anthropic";
@@ -157,29 +168,33 @@ function sanitizeTriggerCodes(codes: string[], draft: LumaDraft): string[] {
   });
 }
 
-function buildCompanionSystemPrompt(draft: LumaDraft, step: LumaStep | "confirm"): string {
+function buildCompanionSystemPrompt(
+  draft: LumaDraft,
+  step: LumaStep | "confirm",
+  careProfileBrief: string
+): string {
   const d = applyDraftInference(draft);
   const gap = primaryGap(d);
   const scribeBrief = buildCompanionScribeBrief(d);
   const turnDirective =
     gap === "review" || step === "confirm"
-      ? `\n## Required now\nInvite them to check the draft log below and say yes to save. Do not recap log fields in chat.`
+      ? `\n## Required now\nInvite them to check the draft note below and say yes to save. Do not recap note fields in chat.`
       : `\n## Your move this turn
 1. Briefly acknowledge what they shared (one or two sentences — validate feelings first if they're upset).
-2. Then ask ONE warm question about the current priority gap (see Log capture status below).
+2. Then ask ONE warm question about the current priority gap (see Capture status below).
 Do not wait for them to ask what else you need. Do not ask about multiple gaps at once.`;
 
   const transparencyBlock = draftHasContent(d)
-    ? `\n## Draft transparency\nA draft care log panel is visible on screen and updates as you and your scribe capture details. Do NOT read out the full log in chat — point to the draft panel in one sentence if helpful.`
-    : `\n## Draft transparency\nA draft care log panel on screen will fill in as you talk. When the first detail is captured, you may mention in one sentence that it's appearing in their draft log below.`;
+    ? `\n## Draft transparency\nA draft note panel is visible on screen and updates as you and your scribe capture details. Do NOT read out the full note in chat — point to the draft panel in one sentence if helpful.`
+    : `\n## Draft transparency\nA draft note panel on screen will fill in as you talk. When the first detail is captured, you may mention in one sentence that it's appearing in their draft note below.`;
 
   return `You are Luma — a calm, emotionally attuned companion for caregivers of people with dementia.
 
-Your job is to be present with the caregiver AND gently guide the conversation so their care log becomes useful. You are NOT a cold survey — but you are also not passive. After you listen and reflect, you lead with the next natural question.
+Your job is to be present with the caregiver AND gently guide the conversation so their notes reveal useful patterns over time. You are NOT a cold survey — but you are also not passive. After you listen and reflect, you lead with the next natural question.
 
 ## Partnership with your scribe
-You work in parallel with a silent scribe that extracts structured data into the draft log. You share the same picture of what's captured and what's still open. Your questions give the scribe material to write down; the scribe's notes tell you what to ask next. Never mention "scribe" or "agent" to the caregiver.
-
+You work in parallel with a silent scribe that extracts structured data into the draft note. You share the same picture of what's captured and what's still open. Your questions give the scribe material to write down; the scribe's notes tell you what to ask next. Never mention "scribe" or "agent" to the caregiver.
+${careProfileBrief}
 ${scribeBrief}${turnDirective}${transparencyBlock}
 
 ## How to talk
@@ -200,7 +215,7 @@ ${scribeBrief}${turnDirective}${transparencyBlock}
 ## Length (critical)
 - Keep each reply short: ideally 2-3 sentences (acknowledgment + one question), max ~4 sentences per turn.
 - Do not stack validation + multiple questions + save prompt in one message.
-- Never recap log fields in chat; the draft panel on screen shows that.
+- Never recap note fields in chat; the draft panel on screen shows that.
 
 ## Never mention
 Logging, forms, fields, severity scales, trigger codes, episode timing categories, or databases.
@@ -217,18 +232,25 @@ Logging, forms, fields, severity scales, trigger codes, episode timing categorie
 Respond with plain text only — your message to the caregiver, nothing else.`;
 }
 
-function buildScribeSystemPrompt(customBehaviors: { code: string; label: string }[]): string {
+function buildScribeSystemPrompt(
+  customBehaviors: { code: string; label: string }[],
+  customStrategies: { code: string; label: string }[]
+): string {
   const behaviorList = BEHAVIOR_OPTIONS.map((b) => `${b.code}: ${b.label}`).join("\n");
-  const customList =
+  const customBehaviorList =
     customBehaviors.length > 0
       ? customBehaviors.map((b) => `${b.code}: ${b.label}`).join("\n")
+      : "(none yet)";
+  const customStrategyList =
+    customStrategies.length > 0
+      ? customStrategies.map((s) => `${s.code}: ${s.label}`).join("\n")
       : "(none yet)";
   const triggerList = COACH_FLOW_TRIGGER_GROUPS.flatMap((g) =>
     g.chips.map((c) => c.code)
   ).join(", ");
   const strategyList = COACH_FLOW_STRATEGIES.map((s) => s.code).join(", ");
 
-  return `You are the silent scribe for Luma's care log. You read the conversation transcript and extract structured data. You never speak to the caregiver.
+  return `You are the silent scribe for Luma's care notes. You read the conversation transcript and extract structured data. You never speak to the caregiver.
 
 Your companion asks warm questions about what's still open; your job is to capture answers into the draft. Extract into draft_updates whenever the transcript contains relevant information. Merge with the current draft — only add or update fields supported by what was said. Never invent details.
 
@@ -236,18 +258,25 @@ Known behavior codes:
 ${behaviorList}
 
 Custom behaviors:
-${customList}
+${customBehaviorList}
+
+Custom strategies (caregiver's own):
+${customStrategyList}
 
 Only set proposed_custom_behavior_label when they clearly describe a behavior NOT in the list (max 3 words). Never use greetings as labels.
+Only set proposed_custom_strategy_label when they describe something they tried that is NOT in the strategy list — distill to 1–3 skimmable words (e.g. "Silent presence", "Monthly" is for frequency not strategy). Never use greetings as labels.
 
 Field codes for draft_updates:
 Episode recency: just_now | earlier_today | yesterday | few_days_ago | not_sure
 Time of day: morning | afternoon | evening | night | overnight | not_sure
 Day context: weekday_usual | weekend | holiday_unusual | appointment_outing | not_sure
+episode_frequency: how often the pattern recurs — short label only, max 3 words (e.g. "Monthly", "Weekly", "Rare"). NOT when this single episode happened.
 Severity: 1 (mild) | 2 (moderate) | 3 (very hard)
 Possible triggers (why it might have happened, NOT when): ${triggerList}
-Strategies: ${strategyList}
+Strategies: ${strategyList} plus custom strategy codes above
 Outcome: helped | helped_little | did_not_help | made_worse | not_sure | not_applicable
+trigger_detail: short prose for what changed right before the behavior (optional)
+notes: free-form narrative — emotional context, quotes, details that do not fit a chip or dropdown. Merge with existing notes; append new details from this turn rather than wiping prior notes.
 
 CRITICAL — time vs trigger:
 - episode_time_of_day = when the behavior happened (morning, evening, etc.)
@@ -265,8 +294,9 @@ Set ready_to_save true ONLY when the user clearly confirms saving (yes, save, lo
 Respond ONLY with JSON: { "draft_updates": {}, "ready_to_save": false }`;
 }
 
-function buildScribeContextMessage(draft: LumaDraft): string {
-  return `[Current draft JSON]\n${JSON.stringify(draft)}\n\n[Extraction guide]\n${describeConversationState(draft)}`;
+function buildScribeContextMessage(draft: LumaDraft, careContextLine: string | null): string {
+  const profileBlock = careContextLine ? `\n\n[Care profile context]\n${careContextLine}` : "";
+  return `[Current draft JSON]\n${JSON.stringify(draft)}\n\n[Extraction guide]\n${describeConversationState(draft)}${profileBlock}`;
 }
 
 function gapToStep(gap: ReturnType<typeof primaryGap>): LumaStep | "confirm" {
@@ -353,13 +383,14 @@ async function callOpenAiChat(
 async function callOpenAiCompanion(
   draft: LumaDraft,
   history: LumaChatTurn[],
-  step: LumaStep | "confirm"
+  step: LumaStep | "confirm",
+  careProfileBrief: string
 ): Promise<string> {
   const model = process.env.LUMA_COMPANION_OPENAI_MODEL ?? "gpt-4o";
 
   return callOpenAiChat(
     [
-      { role: "system", content: buildCompanionSystemPrompt(draft, step) },
+      { role: "system", content: buildCompanionSystemPrompt(draft, step, careProfileBrief) },
       ...historyToOpenAiMessages(history),
     ],
     { model, temperature: 0.85, timeoutMs: COMPANION_TIMEOUT_MS }
@@ -369,7 +400,9 @@ async function callOpenAiCompanion(
 async function callOpenAiScribe(
   draft: LumaDraft,
   history: LumaChatTurn[],
-  customBehaviors: { code: string; label: string }[]
+  customBehaviors: { code: string; label: string }[],
+  customStrategies: { code: string; label: string }[],
+  careContextLine: string | null
 ): Promise<z.infer<typeof scribeResponseSchema>> {
   const model =
     process.env.LUMA_SCRIBE_OPENAI_MODEL ??
@@ -378,9 +411,9 @@ async function callOpenAiScribe(
 
   const raw = await callOpenAiChat(
     [
-      { role: "system", content: buildScribeSystemPrompt(customBehaviors) },
+      { role: "system", content: buildScribeSystemPrompt(customBehaviors, customStrategies) },
       ...historyToOpenAiMessages(history),
-      { role: "system", content: buildScribeContextMessage(draft) },
+      { role: "system", content: buildScribeContextMessage(draft, careContextLine) },
     ],
     { model, json: true, temperature: 0.2 }
   );
@@ -429,7 +462,8 @@ async function callAnthropicChat(
 async function callAnthropicCompanion(
   draft: LumaDraft,
   history: LumaChatTurn[],
-  step: LumaStep | "confirm"
+  step: LumaStep | "confirm",
+  careProfileBrief: string
 ): Promise<string> {
   const model =
     process.env.LUMA_COMPANION_ANTHROPIC_MODEL ??
@@ -437,7 +471,7 @@ async function callAnthropicCompanion(
     "claude-3-5-sonnet-latest";
 
   return callAnthropicChat(
-    buildCompanionSystemPrompt(draft, step),
+    buildCompanionSystemPrompt(draft, step, careProfileBrief),
     historyToOpenAiMessages(history),
     { model, temperature: 0.85, timeoutMs: COMPANION_TIMEOUT_MS }
   );
@@ -446,15 +480,17 @@ async function callAnthropicCompanion(
 async function callAnthropicScribe(
   draft: LumaDraft,
   history: LumaChatTurn[],
-  customBehaviors: { code: string; label: string }[]
+  customBehaviors: { code: string; label: string }[],
+  customStrategies: { code: string; label: string }[],
+  careContextLine: string | null
 ): Promise<z.infer<typeof scribeResponseSchema>> {
   const model = process.env.LUMA_SCRIBE_ANTHROPIC_MODEL ?? "claude-3-5-haiku-latest";
 
   const raw = await callAnthropicChat(
-    buildScribeSystemPrompt(customBehaviors),
+    buildScribeSystemPrompt(customBehaviors, customStrategies),
     [
       ...historyToOpenAiMessages(history),
-      { role: "user", content: buildScribeContextMessage(draft) },
+      { role: "user", content: buildScribeContextMessage(draft, careContextLine) },
     ],
     { model, json: true, temperature: 0.2 }
   );
@@ -479,8 +515,13 @@ function isKnownBehavior(code: string, customBehaviors: { code: string }[]): boo
 function mergeDraft(
   draft: LumaDraft,
   updates: z.infer<typeof draftUpdatesSchema> | undefined,
-  customBehaviors: { code: string; label: string }[]
-): { draft: LumaDraft; needsCustomBehavior?: { label: string } } {
+  customBehaviors: { code: string; label: string }[],
+  customStrategies: { code: string; label: string }[] = []
+): {
+  draft: LumaDraft;
+  needsCustomBehavior?: { label: string };
+  needsCustomStrategy?: { label: string };
+} {
   if (!updates) return { draft };
 
   const next: LumaDraft = {
@@ -520,6 +561,12 @@ function mergeDraft(
     next.episode_time_of_day = updates.episode_time_of_day as EpisodeTimeOfDay;
   if (updates.episode_day_context)
     next.episode_day_context = updates.episode_day_context as EpisodeDayContext;
+  if (updates.episode_frequency != null) {
+    const freq =
+      keywordsToShortLabel(updates.episode_frequency, "") ||
+      updates.episode_frequency.trim().slice(0, 24);
+    next.episode_frequency = freq || undefined;
+  }
   if (updates.severity != null) next.severity = updates.severity;
 
   if (updates.trigger_hypotheses?.length) {
@@ -533,16 +580,47 @@ function mergeDraft(
   if (updates.triggers_answered != null) next.triggers_answered = updates.triggers_answered;
 
   if (updates.strategies_tried?.length) {
-    next.strategies_tried = updates.strategies_tried.filter((c) => STRATEGY_CODES.has(c));
+    next.strategies_tried = updates.strategies_tried.filter((c) =>
+      isKnownStrategyCode(c, customStrategies)
+    );
     if (next.strategies_tried.length === 0) next.strategies_tried = [DID_NOT_TRY_CODE];
   }
   if (updates.strategies_answered != null) next.strategies_answered = updates.strategies_answered;
+
+  if (updates.proposed_custom_strategy_label?.trim()) {
+    const raw = updates.proposed_custom_strategy_label.trim();
+    if (!isGreetingOrSmallTalk(raw)) {
+      const label = keywordsToShortLabel(raw, "");
+      if (label) {
+        const existing = findCustomStrategyByLabel(label, customStrategies);
+        if (existing) {
+          const codes = next.strategies_tried.filter((c) => c !== DID_NOT_TRY_CODE);
+          if (!codes.includes(existing.code)) {
+            next.strategies_tried = [...codes, existing.code];
+            next.strategies_answered = true;
+          }
+        } else if (!COACH_FLOW_STRATEGIES.some((s) => s.label.toLowerCase() === label.toLowerCase())) {
+          return { draft: next, needsCustomStrategy: { label } };
+        }
+      }
+    }
+  }
 
   if (updates.coach_outcome != null)
     next.coach_outcome = updates.coach_outcome as CoachOutcomeUi;
   if (updates.outcome_answered != null) next.outcome_answered = updates.outcome_answered;
 
-  if (updates.notes != null) next.notes = updates.notes.slice(0, 2000) || undefined;
+  if (updates.notes != null) {
+    const incoming = updates.notes.trim().slice(0, 2000);
+    if (!incoming) {
+      // Scribe explicitly cleared notes
+      if (updates.notes === "") next.notes = undefined;
+    } else if (!next.notes?.trim()) {
+      next.notes = incoming;
+    } else if (!next.notes.includes(incoming.slice(0, Math.min(incoming.length, 80)))) {
+      next.notes = `${next.notes.trim()}\n\n${incoming}`.slice(0, 2000);
+    }
+  }
 
   return { draft: applyDraftInference(next) };
 }
@@ -574,8 +652,8 @@ function finalizeCompanionReply(
 
   // Save prompt — keep chat short; draft panel holds the recap
   if (step === "confirm" && !userConfirmedSave(userText)) {
-    if (!/\b(save|draft log)\b/i.test(finalReply)) {
-      finalReply = `${finalReply}\n\nIf your draft log below looks right, say yes to save — or tell me what to change.`;
+    if (!/\b(save|draft note|draft log)\b/i.test(finalReply)) {
+      finalReply = `${finalReply}\n\nIf the draft note below looks right, say yes to save — or tell me what to change.`;
     }
     return finalReply;
   }
@@ -590,7 +668,7 @@ function finalizeCompanionReply(
 
   if (askMirror) {
     const pointer = buildDraftPanelPointer(draft);
-    if (!/\bdraft log\b/i.test(finalReply)) {
+    if (!/\bdraft note\b/i.test(finalReply) && !/\bdraft log\b/i.test(finalReply)) {
       finalReply = `${finalReply}\n\n${pointer}`;
     }
     return finalReply;
@@ -598,9 +676,9 @@ function finalizeCompanionReply(
 
   if (wrapUp || firstCapture) {
     const pointer = firstCapture
-      ? "I'm adding this to your draft log below — feel free to keep going or correct anything."
+      ? "I'm adding this to your draft note below — feel free to keep going or correct anything."
       : buildDraftPanelPointer(draft);
-    if (!/\bdraft log\b/i.test(finalReply)) {
+    if (!/\bdraft note\b/i.test(finalReply) && !/\bdraft log\b/i.test(finalReply)) {
       finalReply = `${finalReply}\n\n${pointer}`;
     }
   }
@@ -615,24 +693,33 @@ export async function processLumaTurnWithLlm(
   userText: string,
   draft: LumaDraft,
   customBehaviors: { code: string; label: string }[],
-  history: LumaChatTurn[]
+  customStrategies: { code: string; label: string }[],
+  history: LumaChatTurn[],
+  careProfile: LumaCareProfileInput
 ): Promise<LumaLlmResult> {
   const provider = resolveProvider();
   if (!provider) {
     throw new Error("No LLM provider configured");
   }
 
-  const workingDraft = applyHeuristicExtraction(userText, draft, customBehaviors);
+  const workingDraft = applyHeuristicExtraction(
+    userText,
+    draft,
+    customBehaviors,
+    customStrategies
+  );
+  const careProfileBrief = buildLumaCareProfileBrief(careProfile);
+  const careContextLine = buildCareContextLine(careProfile);
 
   const companionPromise =
     provider === "openai"
-      ? callOpenAiCompanion(workingDraft, history, step)
-      : callAnthropicCompanion(workingDraft, history, step);
+      ? callOpenAiCompanion(workingDraft, history, step, careProfileBrief)
+      : callAnthropicCompanion(workingDraft, history, step, careProfileBrief);
 
   const scribePromise = (
     provider === "openai"
-      ? callOpenAiScribe(workingDraft, history, customBehaviors)
-      : callAnthropicScribe(workingDraft, history, customBehaviors)
+      ? callOpenAiScribe(workingDraft, history, customBehaviors, customStrategies, careContextLine)
+      : callAnthropicScribe(workingDraft, history, customBehaviors, customStrategies, careContextLine)
   ).catch((err) => {
     console.error("Luma scribe failed (using heuristic extraction):", err);
     return null;
@@ -644,7 +731,12 @@ export async function processLumaTurnWithLlm(
   let scribeReadyToSave = false;
 
   if (scribeResult) {
-    const merged = mergeDraft(workingDraft, scribeResult.draft_updates, customBehaviors);
+    const merged = mergeDraft(
+      workingDraft,
+      scribeResult.draft_updates,
+      customBehaviors,
+      customStrategies
+    );
     if (merged.needsCustomBehavior) {
       const mirror = buildBehaviorMirrorMessage(merged.needsCustomBehavior.label);
       const trimmedReply = reply.trim();
@@ -659,6 +751,22 @@ export async function processLumaTurnWithLlm(
         draft: merged.draft,
         step: "behavior",
         needsCustomBehavior: merged.needsCustomBehavior,
+      };
+    }
+    if (merged.needsCustomStrategy) {
+      const mirror = buildStrategyMirrorMessage(merged.needsCustomStrategy.label);
+      const trimmedReply = reply.trim();
+      const strategyReply =
+        trimmedReply && /\?/.test(trimmedReply)
+          ? trimmedReply
+          : trimmedReply
+            ? `${trimmedReply}\n\n${mirror}`
+            : mirror;
+      return {
+        reply: strategyReply,
+        draft: merged.draft,
+        step: "strategies",
+        needsCustomStrategy: merged.needsCustomStrategy,
       };
     }
     nextDraft = merged.draft;

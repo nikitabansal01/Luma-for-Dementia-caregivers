@@ -21,6 +21,8 @@ import {
   buildBehaviorAcknowledgedMessage,
   buildBehaviorAlternativesMessage,
   buildBehaviorMirrorMessage,
+  buildStrategyAcknowledgedMessage,
+  buildStrategyMirrorMessage,
   buildWarmRecap,
   generateNaturalFollowUp,
   LUMA_OPENING,
@@ -41,6 +43,8 @@ export type LumaDraft = {
   episode_recency?: EpisodeRecency;
   episode_time_of_day?: EpisodeTimeOfDay;
   episode_day_context?: EpisodeDayContext;
+  /** How often the pattern recurs — short label, e.g. "Monthly" (1–3 words). */
+  episode_frequency?: string;
   severity?: number;
   trigger_hypotheses: string[];
   trigger_detail?: string;
@@ -84,9 +88,9 @@ export function normalizeLumaDraft(draft: Partial<LumaDraft> | null | undefined)
   };
 }
 
-/** Build a short label from free text — max 3 words. */
-export function keywordsToBehaviorLabel(text: string): string {
-  if (isGreetingOrSmallTalk(text)) return "Other behavior";
+/** Build a short skimmable label from free text — max 3 words. */
+export function keywordsToShortLabel(text: string, fallback = ""): string {
+  if (isGreetingOrSmallTalk(text)) return fallback;
 
   const stop = new Set([
     "a",
@@ -114,6 +118,8 @@ export function keywordsToBehaviorLabel(text: string): string {
     "had",
     "has",
     "have",
+    "once",
+    "every",
   ]);
   const words = text
     .toLowerCase()
@@ -122,11 +128,16 @@ export function keywordsToBehaviorLabel(text: string): string {
     .filter((w) => w.length > 1 && !stop.has(w))
     .slice(0, 3);
 
-  if (words.length === 0) return "Other behavior";
+  if (words.length === 0) return fallback;
 
   return words
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+}
+
+/** Build a short behavior label from free text — max 3 words. */
+export function keywordsToBehaviorLabel(text: string): string {
+  return keywordsToShortLabel(text, "Other behavior") || "Other behavior";
 }
 
 const BEHAVIOR_HINTS: { code: string; terms: string[] }[] = [
@@ -355,7 +366,10 @@ export function parseTriggers(text: string): string[] {
   return found;
 }
 
-export function parseStrategies(text: string): string[] {
+export function parseStrategies(
+  text: string,
+  customStrategies: { code: string; label: string }[] = []
+): string[] {
   const n = normalize(text);
   if (includesAny(n, ["didn't try", "did not try", "nothing yet", "not yet", "no strategy"])) {
     return [DID_NOT_TRY_CODE];
@@ -379,7 +393,40 @@ export function parseStrategies(text: string): string[] {
   for (const s of COACH_FLOW_STRATEGIES) {
     if (n.includes(s.label.toLowerCase())) found.push(s.code);
   }
+  for (const s of customStrategies) {
+    if (n.includes(s.label.toLowerCase())) found.push(s.code);
+  }
   return found;
+}
+
+const FREQUENCY_PATTERNS: { terms: string[]; label: string }[] = [
+  { terms: ["once a month", "every month", "monthly", "each month"], label: "Monthly" },
+  { terms: ["twice a month", "few times a month"], label: "Few times monthly" },
+  { terms: ["once a week", "every week", "weekly", "each week"], label: "Weekly" },
+  { terms: ["twice a week", "few times a week"], label: "Few times weekly" },
+  { terms: ["every day", "daily", "each day"], label: "Daily" },
+  { terms: ["rarely", "once in a while", "hardly ever"], label: "Rare" },
+  { terms: ["few times a year", "once a year"], label: "Yearly" },
+];
+
+export function parseEpisodeFrequency(text: string): string | undefined {
+  const n = normalize(text);
+  for (const { terms, label } of FREQUENCY_PATTERNS) {
+    if (terms.some((term) => n.includes(term))) return label;
+  }
+  const distilled = keywordsToShortLabel(text, "");
+  if (!distilled) return undefined;
+  if (/\b(month|week|day|year|daily|weekly|monthly)\b/i.test(text)) return distilled;
+  return undefined;
+}
+
+export function isKnownStrategyCode(
+  code: string,
+  customStrategies: { code: string; label: string }[] = []
+): boolean {
+  if (code === DID_NOT_TRY_CODE) return true;
+  if (COACH_FLOW_STRATEGIES.some((s) => s.code === code)) return true;
+  return customStrategies.some((s) => s.code === code);
 }
 
 export function parseOutcome(text: string): CoachOutcomeUi | null {
@@ -400,7 +447,8 @@ export function isSkipIntent(text: string): boolean {
 export function absorbFreeform(
   text: string,
   draft: LumaDraft,
-  customBehaviors: { code: string; label: string }[]
+  customBehaviors: { code: string; label: string }[],
+  customStrategies: { code: string; label: string }[] = []
 ): LumaDraft {
   const next = {
     ...draft,
@@ -428,10 +476,14 @@ export function absorbFreeform(
     next.trigger_hypotheses = filterTimePeriodTriggers(merged, next.episode_time_of_day);
   }
 
-  const strategies = parseStrategies(text);
+  const strategies = parseStrategies(text, customStrategies);
   if (strategies.length > 0) next.strategies_tried = strategies;
 
   if (!next.coach_outcome) next.coach_outcome = parseOutcome(text) ?? undefined;
+
+  if (!next.episode_frequency) {
+    next.episode_frequency = parseEpisodeFrequency(text);
+  }
 
   if (!next.behavior_code && looksLikeBehaviorDescription(text) && text.trim().length > 30) {
     if (!next.notes) next.notes = text.trim().slice(0, 500);
@@ -457,7 +509,11 @@ function gapToStep(gap: ConversationGap): LumaStep | "confirm" {
   }
 }
 
-export function absorbGapResponse(userText: string, draft: LumaDraft): LumaDraft {
+export function absorbGapResponse(
+  userText: string,
+  draft: LumaDraft,
+  customStrategies: { code: string; label: string }[] = []
+): LumaDraft {
   const gap = primaryGap(draft);
   let next = { ...draft };
 
@@ -472,8 +528,8 @@ export function absorbGapResponse(userText: string, draft: LumaDraft): LumaDraft
     }
   }
 
-  if (gap === "response" || parseStrategies(userText).length > 0) {
-    const strategies = parseStrategies(userText);
+  if (gap === "response" || parseStrategies(userText, customStrategies).length > 0) {
+    const strategies = parseStrategies(userText, customStrategies);
     if (strategies.length > 0) {
       next.strategies_tried = strategies;
       next.strategies_answered = true;
@@ -533,10 +589,11 @@ export function nextMissingStep(draft: LumaDraft): LumaStep | "confirm" {
 export function applyHeuristicExtraction(
   userText: string,
   draft: LumaDraft,
-  customBehaviors: { code: string; label: string }[]
+  customBehaviors: { code: string; label: string }[],
+  customStrategies: { code: string; label: string }[] = []
 ): LumaDraft {
-  let next = absorbFreeform(userText, draft, customBehaviors);
-  next = absorbGapResponse(userText, next);
+  let next = absorbFreeform(userText, draft, customBehaviors, customStrategies);
+  next = absorbGapResponse(userText, next, customStrategies);
   return applyDraftInference(next);
 }
 
@@ -545,16 +602,19 @@ export type LumaTurnResult = {
   step: LumaStep | "confirm" | "done";
   lumaMessages: string[];
   needsCustomBehavior?: { label: string };
+  needsCustomStrategy?: { label: string };
+  confirmCustomStrategy?: { label: string };
 };
 
 export function processLumaTurn(
   step: LumaStep | "confirm",
   userText: string,
   draft: LumaDraft,
-  customBehaviors: { code: string; label: string }[]
+  customBehaviors: { code: string; label: string }[],
+  customStrategies: { code: string; label: string }[] = []
 ): LumaTurnResult {
-  let nextDraft = absorbFreeform(userText, draft, customBehaviors);
-  nextDraft = absorbGapResponse(userText, nextDraft);
+  let nextDraft = absorbFreeform(userText, draft, customBehaviors, customStrategies);
+  nextDraft = absorbGapResponse(userText, nextDraft, customStrategies);
   nextDraft = applyDraftInference(nextDraft);
 
   if (step === "welcome" || step === "behavior" || primaryGap(nextDraft) === "story") {
@@ -671,17 +731,103 @@ export function confirmCustomBehavior(
   };
 }
 
+export function confirmCustomStrategy(
+  userText: string,
+  proposedLabel: string,
+  draft: LumaDraft,
+  customBehaviors: { code: string; label: string }[],
+  customStrategies: { code: string; label: string }[]
+): LumaTurnResult {
+  const n = normalize(userText);
+  if (includesAny(n, ["yes", "yeah", "yep", "correct", "that's right", "ok", "okay", "sure"])) {
+    return {
+      draft,
+      step: primaryGap(draft) === "review" ? "confirm" : "strategies",
+      lumaMessages: [buildStrategyAcknowledgedMessage(proposedLabel)],
+      confirmCustomStrategy: { label: proposedLabel },
+    };
+  }
+  const parsed = parseStrategies(userText, customStrategies);
+  if (parsed.length > 0 && parsed[0] !== DID_NOT_TRY_CODE) {
+    const nextDraft = {
+      ...draft,
+      strategies_tried: Array.from(new Set([...draft.strategies_tried.filter((c) => c !== DID_NOT_TRY_CODE), ...parsed])),
+      strategies_answered: true,
+    };
+    return processLumaTurn("strategies", userText, nextDraft, customBehaviors, customStrategies);
+  }
+  const label = keywordsToShortLabel(userText, "");
+  return {
+    draft,
+    step: "strategies",
+    lumaMessages: [buildStrategyMirrorMessage(label || proposedLabel)],
+    needsCustomStrategy: { label: label || proposedLabel },
+  };
+}
+
 export function finalizeLumaDraft(draft: LumaDraft): LumaDraft {
   return {
     ...draft,
     episode_recency: draft.episode_recency ?? "just_now",
     episode_time_of_day: draft.episode_time_of_day ?? inferEpisodeTimeOfDay(),
     episode_day_context: draft.episode_day_context ?? inferEpisodeDayContext(),
+    episode_frequency: draft.episode_frequency?.trim().slice(0, 24) || undefined,
     severity: draft.severity ?? 2,
     strategies_tried:
       draft.strategies_tried.length > 0 ? draft.strategies_tried : [DID_NOT_TRY_CODE],
     coach_outcome: draft.coach_outcome ?? "not_sure",
   };
+}
+
+/** Match label or narrative text to a known behavior so save isn't blocked on dropdown alone. */
+export function inferBehaviorFromDraft(
+  draft: LumaDraft,
+  customBehaviors: { code: string; label: string }[] = []
+): LumaDraft {
+  if (draft.behavior_code) return draft;
+
+  if (draft.behavior_label) {
+    const standard = BEHAVIOR_OPTIONS.find((o) => o.label === draft.behavior_label);
+    if (standard) {
+      return {
+        ...draft,
+        behavior_code: standard.code,
+        behavior_label: standard.label,
+        behavior_is_custom: false,
+      };
+    }
+    const custom = customBehaviors.find((o) => o.label === draft.behavior_label);
+    if (custom) {
+      return {
+        ...draft,
+        behavior_code: custom.code,
+        behavior_label: custom.label,
+        behavior_is_custom: true,
+      };
+    }
+  }
+
+  const text = [draft.notes, draft.trigger_detail, draft.behavior_label]
+    .filter(Boolean)
+    .join(" ");
+  if (!text.trim()) return draft;
+
+  const parsed = parseBehaviorFromText(text, customBehaviors);
+  if (!parsed) return draft;
+
+  return {
+    ...draft,
+    behavior_code: parsed.code,
+    behavior_label: parsed.label,
+    behavior_is_custom: parsed.isCustom,
+  };
+}
+
+export function isLumaDraftSaveReady(
+  draft: LumaDraft,
+  customBehaviors: { code: string; label: string }[] = []
+): boolean {
+  return Boolean(inferBehaviorFromDraft(draft, customBehaviors).behavior_code);
 }
 
 export function getInitialLumaMessages(): string[] {

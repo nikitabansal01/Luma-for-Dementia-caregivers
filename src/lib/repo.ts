@@ -67,6 +67,7 @@ export const createBehaviorLogSchema = z.object({
   episode_time_of_day: episodeTimeOfDayEnum,
   episode_day_context: episodeDayContextEnum,
   exact_episode_at: z.string().optional(),
+  episode_frequency: z.string().max(24).optional(),
   trigger_hypotheses: z.array(z.string()).default([]),
   trigger_detail: z.string().max(500).optional(),
   recommended_interventions: z.array(z.string()).default([]),
@@ -298,6 +299,7 @@ export type BehaviorLog = {
   episode_time_of_day: EpisodeTimeOfDay | null;
   episode_day_context: EpisodeDayContext | null;
   exact_episode_at: string | null;
+  episode_frequency: string | null;
   created_at: string;
 };
 
@@ -334,6 +336,7 @@ function rowToBehaviorLog(row: Record<string, unknown>): BehaviorLog {
     episode_time_of_day: (row.episode_time_of_day as EpisodeTimeOfDay) ?? null,
     episode_day_context: (row.episode_day_context as EpisodeDayContext) ?? null,
     exact_episode_at: (row.exact_episode_at as string) ?? null,
+    episode_frequency: (row.episode_frequency as string) ?? null,
     created_at: row.created_at as string,
   };
 }
@@ -393,8 +396,8 @@ export function createBehaviorLog(payload: unknown): BehaviorLog {
       id, care_recipient_id, occurred_at, behavior_type, behavior_detail, severity,
       trigger_type, trigger_detail, trigger_hypotheses, recommended_interventions, interventions_attempted,
       intervention_tried, outcome, notes, episode_recency, episode_time_of_day, episode_day_context,
-      exact_episode_at, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      exact_episode_at, episode_frequency, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     parsed.care_recipient_id,
@@ -414,6 +417,7 @@ export function createBehaviorLog(payload: unknown): BehaviorLog {
     parsed.episode_time_of_day,
     parsed.episode_day_context,
     parsed.exact_episode_at ?? null,
+    parsed.episode_frequency ?? null,
     created_at
   );
   const row = db.prepare("SELECT * FROM behavior_logs WHERE id = ?").get(id) as Record<string, unknown>;
@@ -926,8 +930,8 @@ export function getSynopsisLogPreviews(days: number, limit = 5): SynopsisLogPrev
       outcome: log.outcome,
       notes: log.notes,
       triggerLabels: triggerCodes.map((code) => getTriggerDisplayLabel(code, log.behavior_type)),
-      strategyLabels: strategyCodes.map(getStrategyLabel),
-      recommendedLabels: recommended.map(getStrategyLabel),
+      strategyLabels: strategyCodes.map((code) => getStrategyLabel(code)),
+      recommendedLabels: recommended.map((code) => getStrategyLabel(code)),
     };
   });
 }

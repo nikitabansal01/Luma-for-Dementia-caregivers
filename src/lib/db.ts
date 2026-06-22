@@ -59,8 +59,18 @@ function initSchema(db: Database.Database): void {
   try {
     db.exec(`ALTER TABLE behavior_logs ADD COLUMN exact_episode_at TEXT`);
   } catch {}
+  try {
+    db.exec(`ALTER TABLE behavior_logs ADD COLUMN episode_frequency TEXT`);
+  } catch {}
   db.exec(`
     CREATE TABLE IF NOT EXISTS custom_behaviors (
+      code TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS custom_strategies (
       code TEXT PRIMARY KEY,
       label TEXT NOT NULL,
       created_at TEXT NOT NULL

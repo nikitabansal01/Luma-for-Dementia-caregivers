@@ -20,12 +20,16 @@ import EpisodeTimingSelector from "./EpisodeTimingSelector";
 import SeveritySelector from "./SeveritySelector";
 
 type CustomBehaviorOption = { code: string; label: string };
+type CustomStrategyOption = { code: string; label: string };
 
 type LumaDraftFieldsProps = {
   draft: LumaDraft;
   customBehaviors: CustomBehaviorOption[];
+  customStrategies?: CustomStrategyOption[];
   saving: boolean;
   idPrefix: string;
+  /** When true, only show values the scribe/user actually captured — no visual defaults. */
+  emptyDefaults?: boolean;
   onDraftChange: (draft: LumaDraft) => void;
 };
 
@@ -34,19 +38,29 @@ const TRIGGER_GROUPS = COACH_FLOW_TRIGGER_GROUPS.filter((g) => g.category !== "T
 export default function LumaDraftFields({
   draft,
   customBehaviors,
+  customStrategies = [],
   saving,
   idPrefix,
+  emptyDefaults = false,
   onDraftChange,
 }: LumaDraftFieldsProps) {
   const defaults = defaultEpisodeTiming();
   const [exactEpisodeAt, setExactEpisodeAt] = useState("");
   const [showExactEpisode, setShowExactEpisode] = useState(false);
 
-  const episodeRecency = draft.episode_recency ?? defaults.episode_recency;
-  const episodeTimeOfDay = draft.episode_time_of_day ?? defaults.episode_time_of_day;
-  const episodeDayContext = draft.episode_day_context ?? defaults.episode_day_context;
-  const severity = draft.severity ?? 2;
-  const outcome = draft.coach_outcome ?? "not_sure";
+  const episodeRecency = emptyDefaults ? draft.episode_recency : draft.episode_recency ?? defaults.episode_recency;
+  const episodeTimeOfDay = emptyDefaults
+    ? draft.episode_time_of_day
+    : draft.episode_time_of_day ?? defaults.episode_time_of_day;
+  const episodeDayContext = emptyDefaults
+    ? draft.episode_day_context
+    : draft.episode_day_context ?? defaults.episode_day_context;
+  const severity = emptyDefaults ? draft.severity : draft.severity ?? 2;
+  const outcome = emptyDefaults
+    ? draft.outcome_answered || draft.coach_outcome
+      ? draft.coach_outcome
+      : undefined
+    : draft.coach_outcome ?? "not_sure";
 
   const didNotTryOnly =
     draft.strategies_tried.length === 1 && draft.strategies_tried[0] === DID_NOT_TRY_CODE;
@@ -88,7 +102,7 @@ export default function LumaDraftFields({
     patch({
       strategies_tried: next,
       strategies_answered: next.length > 0,
-      coach_outcome: outcome === "not_applicable" ? "not_sure" : outcome,
+      coach_outcome: outcome === "not_applicable" ? undefined : outcome,
       outcome_answered: outcome === "not_applicable" ? false : draft.outcome_answered,
     });
   }
@@ -109,8 +123,9 @@ export default function LumaDraftFields({
           value={draft.behavior_code ?? ""}
           onChange={(e) => handleBehaviorChange(e.target.value)}
           disabled={saving}
+          required
         >
-          <option value="">Select a behavior…</option>
+          <option value="">Choose from the list…</option>
           {BEHAVIOR_OPTIONS.map(({ label, code }) => (
             <option key={code} value={code}>
               {label}
@@ -126,6 +141,12 @@ export default function LumaDraftFields({
             </optgroup>
           )}
         </select>
+        {!draft.behavior_code && (draft.notes?.trim() || draft.behavior_label) && (
+          <p className="text-xs leading-relaxed text-care-stone">
+            Notes from chat don&apos;t set this automatically — pick the closest match above to
+            enable save.
+          </p>
+        )}
       </div>
 
       <EpisodeTimingSelector
@@ -140,6 +161,26 @@ export default function LumaDraftFields({
         onExactEpisodeAtChange={setExactEpisodeAt}
         onShowExactChange={setShowExactEpisode}
       />
+
+      <div className="grid gap-2">
+        <label htmlFor={`${idPrefix}-frequency`} className="coach-flow-field-label">
+          How often does this happen? (optional)
+        </label>
+        <input
+          id={`${idPrefix}-frequency`}
+          type="text"
+          placeholder="e.g. Monthly, Weekly, Rare"
+          maxLength={24}
+          value={draft.episode_frequency ?? ""}
+          onChange={(e) =>
+            patch({ episode_frequency: e.target.value.trim() || undefined })
+          }
+          disabled={saving}
+        />
+        <p className="text-xs leading-relaxed text-care-stone">
+          Short label only — when this episode happened is above; this is the recurring pattern.
+        </p>
+      </div>
 
       <SeveritySelector
         value={severity}
@@ -198,6 +239,22 @@ export default function LumaDraftFields({
         <p className="coach-flow-field-label">Strategies you tried</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {COACH_FLOW_STRATEGIES.map((s) => {
+            const selected = draft.strategies_tried.includes(s.code);
+            return (
+              <button
+                key={s.code}
+                type="button"
+                onClick={() => toggleStrategy(s.code)}
+                disabled={saving}
+                className={`coach-flow-chip ${
+                  selected ? "coach-flow-chip--selected" : "coach-flow-chip--idle"
+                }`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+          {customStrategies.map((s) => {
             const selected = draft.strategies_tried.includes(s.code);
             return (
               <button

@@ -6,6 +6,8 @@ import {
   createEmptyDraft,
   finalizeLumaDraft,
   getInitialLumaMessages,
+  inferBehaviorFromDraft,
+  isLumaDraftSaveReady,
   type LumaDraft,
   type LumaMessage,
   type LumaStep,
@@ -25,6 +27,7 @@ import {
 import { DID_NOT_TRY_CODE, mapCoachOutcomeToDb, strategyCodesToLabels } from "@/src/lib/coachFlowCatalog";
 import {
   createCustomBehaviorAction,
+  createCustomStrategyAction,
   getLumaLlmStatusAction,
   lumaTurnAction,
   submitLumaLogAction,
@@ -61,11 +64,14 @@ function getInitialSession() {
 }
 
 type CustomBehaviorOption = { code: string; label: string };
+type CustomStrategyOption = { code: string; label: string };
 
 type LumaCompanionProps = {
   customBehaviors: CustomBehaviorOption[];
+  customStrategies: CustomStrategyOption[];
   onClose: () => void;
   onBehaviorsUpdated: (behaviors: CustomBehaviorOption[]) => void;
+  onStrategiesUpdated: (strategies: CustomStrategyOption[]) => void;
 };
 
 function msgId(): string {
@@ -92,8 +98,10 @@ function isFailedTurnResult(
 
 export default function LumaCompanion({
   customBehaviors,
+  customStrategies,
   onClose,
   onBehaviorsUpdated,
+  onStrategiesUpdated,
 }: LumaCompanionProps) {
   const router = useRouter();
   const [messages, setMessages] = useState<LumaMessage[]>(() => {
@@ -109,21 +117,24 @@ export default function LumaCompanion({
   );
   const [input, setInput] = useState("");
   const [pendingCustomLabel, setPendingCustomLabel] = useState<string | null>(null);
+  const [pendingCustomStrategyLabel, setPendingCustomStrategyLabel] = useState<string | null>(
+    null
+  );
   const [saving, setSaving] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [lumaVoice, setLumaVoice] = useState<LumaVoiceId>(() => getStoredLumaVoice());
   const [ttsAvailable, setTtsAvailable] = useState(false);
-  const [llmProvider, setLlmProvider] = useState<"openai" | "anthropic" | null>(null);
-  const [llmModels, setLlmModels] = useState<{
-    companion: string | null;
-    scribe: string | null;
-  }>({ companion: null, scribe: null });
   const scrollRef = useRef<HTMLDivElement>(null);
   const behaviorsRef = useRef(customBehaviors);
+  const strategiesRef = useRef(customStrategies);
+  const strategyLabelsRef = useRef(
+    Object.fromEntries(customStrategies.map((s) => [s.code, s.label]))
+  );
   const draftRef = useRef(draft);
-  const [draftOpen, setDraftOpen] = useState(true);
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [draftForceEdit, setDraftForceEdit] = useState(false);
   const [keepTalkingDismissed, setKeepTalkingDismissed] = useState(
     () => getInitialSession()?.keepTalkingDismissed ?? false
   );
@@ -137,7 +148,6 @@ export default function LumaCompanion({
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<string | null>(
     () => getInitialSession()?.savedAt ?? null
   );
-  const hadDraftContentRef = useRef(false);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -147,6 +157,13 @@ export default function LumaCompanion({
   useEffect(() => {
     behaviorsRef.current = customBehaviors;
   }, [customBehaviors]);
+
+  useEffect(() => {
+    strategiesRef.current = customStrategies;
+    strategyLabelsRef.current = Object.fromEntries(customStrategies.map((s) => [s.code, s.label]));
+  }, [customStrategies]);
+
+  const handleForceEditHandled = useCallback(() => setDraftForceEdit(false), []);
 
   const persistSession = useCallback(() => {
     if (saving) return;
@@ -180,12 +197,8 @@ export default function LumaCompanion({
 
   useEffect(() => {
     getLumaLlmStatusAction()
-      .then(({ configured, provider, companionModel, scribeModel, ttsAvailable: tts }) => {
+      .then(({ ttsAvailable: tts }) => {
         setTtsAvailable(tts);
-        if (configured) {
-          setLlmProvider(provider);
-          setLlmModels({ companion: companionModel, scribe: scribeModel });
-        }
       })
       .catch(() => {
         // Server unreachable on mount — Luma still works with heuristics.
@@ -211,11 +224,54 @@ export default function LumaCompanion({
     storeLumaVoice(voice);
   };
 
+  const customStrategyLabels = useMemo(
+    () => Object.fromEntries(customStrategies.map((s) => [s.code, s.label])),
+    [customStrategies]
+  );
+
   const saveLog = useCallback(
     async (finalDraft: LumaDraft) => {
       setSaving(true);
       setError(null);
-      const d = finalizeLumaDraft(finalDraft);
+
+      let resolved = inferBehaviorFromDraft(finalDraft, behaviorsRef.current);
+
+      if (
+        !resolved.behavior_code &&
+        resolved.behavior_is_custom &&
+        resolved.behavior_label?.trim()
+      ) {
+        const created = await createCustomBehaviorAction(resolved.behavior_label.trim());
+        if (!created.success) {
+          setSaving(false);
+          setError(created.error);
+          return;
+        }
+        const updatedBehaviors = [...behaviorsRef.current, created.behavior];
+        behaviorsRef.current = updatedBehaviors;
+        onBehaviorsUpdated(updatedBehaviors);
+        resolved = {
+          ...resolved,
+          behavior_code: created.behavior.code,
+          behavior_label: created.behavior.label,
+          behavior_is_custom: true,
+        };
+      }
+
+      if (!resolved.behavior_code) {
+        setSaving(false);
+        setDraftOpen(true);
+        setDraftForceEdit(true);
+        setError(
+          "Choose what happened in the draft below — tap edit (✎) and pick from the list. Notes alone don’t count as the behavior type."
+        );
+        return;
+      }
+
+      draftRef.current = resolved;
+      setDraft(resolved);
+
+      const d = finalizeLumaDraft(resolved);
       const didNotTryOnly =
         d.strategies_tried.length === 1 && d.strategies_tried[0] === DID_NOT_TRY_CODE;
       const effectiveOutcome = didNotTryOnly ? "not_applicable" : d.coach_outcome ?? "not_sure";
@@ -227,10 +283,14 @@ export default function LumaCompanion({
         episode_recency: d.episode_recency!,
         episode_time_of_day: d.episode_time_of_day!,
         episode_day_context: d.episode_day_context!,
+        episode_frequency: d.episode_frequency,
         trigger_hypotheses: d.trigger_hypotheses,
         trigger_detail: d.trigger_detail,
         recommended_interventions: recommendationActions(recs),
-        interventions_attempted: strategyCodesToLabels(d.strategies_tried),
+        interventions_attempted: strategyCodesToLabels(
+          d.strategies_tried,
+          strategyLabelsRef.current
+        ),
         outcome: mapCoachOutcomeToDb(effectiveOutcome),
         coach_outcome: effectiveOutcome,
         notes: d.notes,
@@ -240,14 +300,14 @@ export default function LumaCompanion({
       if (result.success) {
         clearLumaSession();
         setLastAutoSavedAt(null);
-        appendLuma(["Saved. Thank you for logging this observation — it really helps over time."]);
+        appendLuma(["Saved. Thank you — this note helps patterns emerge for you and your care team."]);
         router.refresh();
         setTimeout(onClose, 1500);
       } else {
         setError(result.error);
       }
     },
-    [appendLuma, onClose, router]
+    [appendLuma, onBehaviorsUpdated, onClose, router]
   );
 
   const handleTurn = useCallback(
@@ -273,8 +333,10 @@ export default function LumaCompanion({
           userText: trimmed,
           draft: draftRef.current,
           customBehaviors: behaviorsRef.current,
+          customStrategies: strategiesRef.current,
           history,
           pendingCustomLabel,
+          pendingCustomStrategyLabel,
         });
 
         if (result == null) {
@@ -293,6 +355,41 @@ export default function LumaCompanion({
           setDraft(turn.draft);
           draftRef.current = turn.draft;
           appendLuma(turn.lumaMessages);
+          return;
+        }
+
+        if (turn.needsCustomStrategy) {
+          setPendingCustomStrategyLabel(turn.needsCustomStrategy.label);
+          setDraft(turn.draft);
+          draftRef.current = turn.draft;
+          appendLuma(turn.lumaMessages);
+          return;
+        }
+
+        if (turn.confirmCustomStrategy) {
+          const created = await createCustomStrategyAction(turn.confirmCustomStrategy.label);
+          if (!created.success) {
+            setError(created.error);
+            return;
+          }
+          const updatedStrategies = [...strategiesRef.current, created.strategy];
+          strategiesRef.current = updatedStrategies;
+          strategyLabelsRef.current[created.strategy.code] = created.strategy.label;
+          onStrategiesUpdated(updatedStrategies);
+          const withoutDidNotTry = turn.draft.strategies_tried.filter((c) => c !== DID_NOT_TRY_CODE);
+          const withStrategy = {
+            ...turn.draft,
+            strategies_tried: Array.from(new Set([...withoutDidNotTry, created.strategy.code])),
+            strategies_answered: true,
+          };
+          setPendingCustomStrategyLabel(null);
+          setDraft(withStrategy);
+          draftRef.current = withStrategy;
+          setStep(turn.step === "done" ? "confirm" : turn.step);
+          appendLuma(turn.lumaMessages);
+          if (turn.step === "done" && userConfirmedSave(trimmed)) {
+            await saveLog(draftRef.current);
+          }
           return;
         }
 
@@ -322,6 +419,7 @@ export default function LumaCompanion({
         }
 
         setPendingCustomLabel(null);
+        setPendingCustomStrategyLabel(null);
         const confirmingSave = turn.step === "done" && userConfirmedSave(trimmed);
         if (!confirmingSave) {
           setDraft(turn.draft);
@@ -329,7 +427,6 @@ export default function LumaCompanion({
         }
         setStep(turn.step === "done" ? "confirm" : turn.step);
         appendLuma(turn.lumaMessages);
-        if (draftHasContent(turn.draft)) setDraftOpen(true);
 
         if (confirmingSave) {
           await saveLog(draftRef.current);
@@ -344,7 +441,9 @@ export default function LumaCompanion({
       appendLuma,
       messages,
       onBehaviorsUpdated,
+      onStrategiesUpdated,
       pendingCustomLabel,
+      pendingCustomStrategyLabel,
       saveLog,
       saving,
       step,
@@ -370,18 +469,14 @@ export default function LumaCompanion({
   }, [messages, thinking]);
 
   useEffect(() => {
-    const has = draftHasContent(draft);
-    if (has && !hadDraftContentRef.current) setDraftOpen(true);
-    hadDraftContentRef.current = has;
-  }, [draft]);
-
-  useEffect(() => {
     if (primaryGap(applyDraftInference(draft)) !== "review") {
       setKeepTalkingDismissed(false);
     }
   }, [draft]);
 
   const inferredDraft = applyDraftInference(draft);
+  const saveReady = isLumaDraftSaveReady(inferredDraft, customBehaviors);
+
   const showFinalLogEditor =
     Boolean(draft.behavior_code) &&
     (primaryGap(inferredDraft) === "review" || step === "confirm") &&
@@ -398,19 +493,6 @@ export default function LumaCompanion({
     return [];
   }, [draft, showFinalLogEditor, showSuggestions]);
 
-  const providerLabel =
-    llmProvider === "openai"
-      ? "OpenAI"
-      : llmProvider === "anthropic"
-        ? "Claude"
-        : null;
-  const modelHint =
-    llmModels.companion && llmModels.scribe
-      ? ` · ${llmModels.companion} + ${llmModels.scribe} scribe`
-      : providerLabel
-        ? ""
-        : null;
-
   return (
     <div className="luma-companion">
       <header className="luma-companion__header">
@@ -418,14 +500,7 @@ export default function LumaCompanion({
           <p className="luma-companion__eyebrow">Companion</p>
           <h2 className="luma-companion__title">Luma</h2>
           <p className="luma-companion__lead">
-            Talk or type — I&apos;ll listen gently and help fill in your care log.
-            {providerLabel && (
-              <span className="luma-companion__provider">
-                {" "}
-                · Powered by {providerLabel}
-                {modelHint}
-              </span>
-            )}
+            Talk or type — I&apos;ll listen gently, and help your notes reveal patterns over time.
           </p>
         </div>
         <button type="button" onClick={onClose} className="luma-companion__close">
@@ -471,45 +546,56 @@ export default function LumaCompanion({
         )}
       </div>
 
-      {showFinalLogEditor ? (
-        <LumaFinalLogEditor
-          draft={draft}
-          customBehaviors={customBehaviors}
-          saving={saving}
-          lastAutoSavedAt={lastAutoSavedAt}
-          suggestions={suggestions}
-          onDraftChange={(next) => {
-            draftRef.current = next;
-            setDraft(next);
-          }}
-          onSave={() => void saveLog(draftRef.current)}
-          onKeepTalking={() => {
-            setKeepTalkingDismissed(true);
-            appendLuma(["No problem — keep sharing whenever you're ready."]);
-          }}
-        />
-      ) : (
-        <>
-          <LumaDraftPanel
+      <div className="luma-companion__capture">
+        {showFinalLogEditor ? (
+          <LumaFinalLogEditor
             draft={draft}
-            open={draftOpen}
-            saving={saving}
             customBehaviors={customBehaviors}
+            customStrategies={customStrategies}
+            customStrategyLabels={customStrategyLabels}
+            saving={saving}
+            saveReady={saveReady}
             lastAutoSavedAt={lastAutoSavedAt}
-            onToggle={() => setDraftOpen((v) => !v)}
+            suggestions={suggestions}
             onDraftChange={(next) => {
               draftRef.current = next;
               setDraft(next);
             }}
+            onSave={() => void saveLog(draftRef.current)}
+            onKeepTalking={() => {
+              setKeepTalkingDismissed(true);
+              appendLuma(["No problem — keep sharing whenever you're ready."]);
+            }}
           />
-          {showSuggestions && (
-            <LumaSuggestionPanel
-              recommendations={suggestions}
-              className="luma-companion__suggestions coach-suggestions-panel"
+        ) : (
+          <>
+            <LumaDraftPanel
+              draft={draft}
+              open={draftOpen}
+              saving={saving}
+              saveReady={saveReady}
+              customBehaviors={customBehaviors}
+              customStrategies={customStrategies}
+              customStrategyLabels={customStrategyLabels}
+              lastAutoSavedAt={lastAutoSavedAt}
+              forceEdit={draftForceEdit}
+              onForceEditHandled={handleForceEditHandled}
+              onToggle={() => setDraftOpen((v) => !v)}
+              onDraftChange={(next) => {
+                draftRef.current = next;
+                setDraft(next);
+              }}
+              onSave={() => void saveLog(draftRef.current)}
             />
-          )}
-        </>
-      )}
+            {showSuggestions && (
+              <LumaSuggestionPanel
+                recommendations={suggestions}
+                className="luma-companion__suggestions coach-suggestions-panel"
+              />
+            )}
+          </>
+        )}
+      </div>
 
       <form
         className="luma-companion__input-row"

@@ -37,7 +37,7 @@ export default function SynopsisReportView({
   return (
     <div id="synopsis-content" className="synopsis-print space-y-6">
       <div className="print-only mb-6 border-b border-care-sage pb-4">
-        <h1 className="font-serif text-2xl font-semibold text-care-forest">Care Log Synopsis</h1>
+        <h1 className="font-serif text-2xl font-semibold text-care-forest">Care Synopsis</h1>
         <p className="mt-1 text-sm text-care-stone">{periodLabel}</p>
       </div>
 
@@ -140,7 +140,7 @@ export default function SynopsisReportView({
           <div className="synopsis-highlight mt-4">
             <h3 className="mb-1 text-sm font-semibold text-care-forest">Standouts</h3>
             <p className="text-sm leading-relaxed text-care-bark">
-              {data.topHelpfulStrategies.map(getStrategyLabel).join(" · ")}
+              {data.topHelpfulStrategies.map((code) => getStrategyLabel(code)).join(" · ")}
             </p>
           </div>
         )}

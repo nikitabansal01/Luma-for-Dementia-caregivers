@@ -17,8 +17,10 @@ import { saveCoachRules, getRecommendations } from "@/src/lib/coach";
 import { encodeCoachOutcomeDetail } from "@/src/lib/logUtils";
 import type { CoachOutcomeUi } from "@/src/lib/coachFlowCatalog";
 import { createCustomBehavior, listCustomBehaviors } from "@/src/lib/customBehaviors";
+import { createCustomStrategy, listCustomStrategies } from "@/src/lib/customStrategies";
 import {
   confirmCustomBehavior,
+  confirmCustomStrategy,
   processLumaTurn,
   type LumaDraft,
   type LumaStep,
@@ -55,6 +57,7 @@ export type CoachLogPayload = {
     | "appointment_outing"
     | "not_sure";
   exact_episode_at?: string;
+  episode_frequency?: string;
   trigger_hypotheses: string[];
   trigger_detail?: string;
   recommended_interventions: string[];
@@ -101,6 +104,7 @@ export async function submitCoachLog(payload: CoachLogPayload): Promise<SubmitCo
       episode_time_of_day: payload.episode_time_of_day,
       episode_day_context: payload.episode_day_context,
       exact_episode_at: payload.exact_episode_at,
+      episode_frequency: payload.episode_frequency,
       trigger_hypotheses: payload.trigger_hypotheses,
       trigger_detail: payload.trigger_detail,
       recommended_interventions: payload.recommended_interventions,
@@ -277,6 +281,23 @@ export async function createCustomBehaviorAction(
   }
 }
 
+export async function createCustomStrategyAction(
+  label: string
+): Promise<
+  { success: true; strategy: { code: string; label: string } } | { success: false; error: string }
+> {
+  try {
+    const strategy = createCustomStrategy(label);
+    revalidatePath("/");
+    return { success: true, strategy: { code: strategy.code, label: strategy.label } };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Could not create strategy",
+    };
+  }
+}
+
 export async function submitLumaLogAction(payload: LumaLogPayload): Promise<SubmitCoachResult> {
   return submitCoachLog(payload);
 }
@@ -286,8 +307,10 @@ export type LumaTurnPayload = {
   userText: string;
   draft: LumaDraft;
   customBehaviors: { code: string; label: string }[];
+  customStrategies: { code: string; label: string }[];
   history: { role: "user" | "luma"; text: string }[];
   pendingCustomLabel?: string | null;
+  pendingCustomStrategyLabel?: string | null;
 };
 
 export type LumaTurnActionResult =
@@ -295,9 +318,29 @@ export type LumaTurnActionResult =
   | { success: false; error: string };
 
 export async function lumaTurnAction(payload: LumaTurnPayload): Promise<LumaTurnActionResult> {
-  const { step, userText, draft, customBehaviors, history, pendingCustomLabel } = payload;
+  const {
+    step,
+    userText,
+    draft,
+    customBehaviors,
+    customStrategies,
+    history,
+    pendingCustomLabel,
+    pendingCustomStrategyLabel,
+  } = payload;
 
   try {
+    if (pendingCustomStrategyLabel) {
+      const customResult = confirmCustomStrategy(
+        userText,
+        pendingCustomStrategyLabel,
+        draft,
+        customBehaviors,
+        customStrategies
+      );
+      return { ...customResult, source: "heuristic" };
+    }
+
     if (pendingCustomLabel) {
       const customResult = confirmCustomBehavior(
         userText,
@@ -314,19 +357,32 @@ export async function lumaTurnAction(payload: LumaTurnPayload): Promise<LumaTurn
         content: m.text,
       }));
 
+      const recipient = getOrCreateDefaultRecipient();
+      const careProfile = {
+        name: recipient.name,
+        stage: recipient.stage,
+        caregiver_relationship: recipient.caregiver_relationship,
+        age_range: recipient.age_range,
+        age: recipient.age,
+        living_situation: recipient.living_situation,
+      };
+
       try {
         const llm = await processLumaTurnWithLlm(
           step,
           userText,
           draft,
           customBehaviors,
-          chatHistory
+          customStrategies,
+          chatHistory,
+          careProfile
         );
         return {
           draft: llm.draft,
           step: llm.step,
           lumaMessages: [llm.reply],
           needsCustomBehavior: llm.needsCustomBehavior,
+          needsCustomStrategy: llm.needsCustomStrategy,
           source: "llm",
         };
       } catch (llmErr) {
@@ -334,7 +390,7 @@ export async function lumaTurnAction(payload: LumaTurnPayload): Promise<LumaTurn
       }
     }
 
-    const heuristic = processLumaTurn(step, userText, draft, customBehaviors);
+    const heuristic = processLumaTurn(step, userText, draft, customBehaviors, customStrategies);
     const resolvedStep = heuristic.step === "done" ? "done" : heuristic.step;
     return {
       ...heuristic,

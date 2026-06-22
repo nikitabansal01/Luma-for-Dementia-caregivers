@@ -1243,14 +1243,14 @@
   .luma-companion__lead {
     @apply mt-1 text-sm text-care-stone;
   }
-  .luma-companion__provider {
-    @apply text-care-skyDark;
-  }
   .luma-companion__close {
     @apply shrink-0 rounded-full border border-care-sage bg-white px-3 py-1.5 text-xs font-medium text-care-stone transition hover:border-care-bark/30 hover:text-care-bark;
   }
   .luma-companion__messages {
-    @apply mb-4 max-h-[min(22rem,50vh)] space-y-3 overflow-y-auto rounded-2xl border border-care-sage/80 bg-white/90 p-4 shadow-card;
+    @apply mb-3 max-h-[min(22rem,50vh)] space-y-3 overflow-y-auto rounded-2xl border border-care-sage/80 bg-white/90 p-4 shadow-card;
+  }
+  .luma-companion__capture {
+    @apply mb-3;
   }
   .luma-message {
     @apply flex gap-2;
@@ -1291,8 +1291,45 @@
   .luma-companion__summary--open {
     @apply shadow-card;
   }
+  .luma-companion__summary-header {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
   .luma-companion__summary-toggle {
-    @apply flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-care-sage/25;
+    @apply flex min-w-0 flex-1 items-center gap-2 px-4 py-3 text-left transition hover:bg-care-sage/25;
+  }
+  .luma-companion__summary-edit {
+    @apply shrink-0 border-l border-care-sage/50 px-3 py-3 text-care-stone transition hover:bg-care-sage/25 hover:text-care-forest;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .luma-companion__summary-edit--inline {
+    @apply border-l-0 px-2 py-1;
+  }
+  .luma-companion__summary-snippet {
+    @apply min-w-0 flex-1 truncate text-xs italic text-care-stone;
+  }
+  .luma-companion__summary-dl {
+    @apply space-y-2;
+  }
+  .luma-companion__summary-row {
+    @apply grid grid-cols-[5.5rem_1fr] gap-2 text-xs;
+  }
+  .luma-companion__summary-row dt {
+    @apply font-medium text-care-stone;
+  }
+  .luma-companion__summary-row dd {
+    @apply text-care-bark;
+  }
+  .luma-companion__summary-edit-hint {
+    @apply mb-3 text-xs leading-relaxed text-care-stone;
+  }
+  .luma-companion__summary-done-edit {
+    @apply mt-3 text-xs font-medium text-care-stone underline decoration-care-sage underline-offset-2 transition hover:text-care-forest;
+  }
+  .luma-companion__summary-done-edit--inline {
+    @apply mt-0 shrink-0 px-1 py-0;
   }
   .luma-companion__summary-label {
     @apply font-medium text-care-bark;
@@ -1314,6 +1351,32 @@
   .luma-companion__summary-empty {
     @apply mt-1.5 text-care-stone leading-relaxed;
   }
+  .luma-draft-save {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    padding: 0 0.5rem;
+    border-left: 1px solid rgb(168 181 160 / 0.55);
+  }
+  .luma-draft-save__pill {
+    @apply rounded-full border border-care-sage bg-white px-3 py-1 text-xs font-medium text-care-stone transition;
+  }
+  .luma-draft-save__pill:hover:not(:disabled) {
+    @apply border-care-forest/40 bg-care-sage/25 text-care-forest;
+  }
+  .luma-draft-save__pill--ready {
+    @apply border-care-forest/50 bg-care-forest/10 text-care-forest;
+  }
+  .luma-draft-save__pill--ready:hover:not(:disabled) {
+    @apply border-care-forest bg-care-forest text-white;
+  }
+  .luma-draft-save__pill:disabled {
+    @apply cursor-not-allowed border-care-sage/80 bg-care-sage/15 text-care-stone/80;
+    opacity: 1;
+  }
+  .luma-companion__keep-talking {
+    @apply mt-2 w-full text-center text-xs font-medium text-care-stone underline decoration-care-sage underline-offset-2 transition hover:text-care-forest;
+  }
   .luma-companion__summary-open {
     @apply mt-2 border-t border-care-sage/50 pt-2 text-xs text-care-stone/90 italic;
   }
@@ -1321,16 +1384,27 @@
     @apply mt-2 rounded-lg bg-care-sky/20 px-3 py-2 text-xs text-care-forest;
   }
   .luma-companion__final-log {
-    @apply mb-4 rounded-xl border border-care-sky/40 bg-white/95 p-4 shadow-card;
+    @apply rounded-xl border border-care-sage/80 bg-care-sage/15 p-4 text-sm text-care-bark shadow-card;
   }
   .luma-companion__final-log-header {
-    @apply mb-4 border-b border-care-sage/50 pb-3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .luma-companion__final-log-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+  .luma-companion__final-log-actions .luma-draft-save {
+    border-left: none;
+    padding: 0;
   }
   .luma-companion__final-log-title {
-    @apply font-serif text-lg font-semibold text-care-forest;
-  }
-  .luma-companion__final-log-lead {
-    @apply mt-1 text-sm leading-relaxed text-care-stone;
+    @apply text-sm font-medium text-care-bark;
   }
   .luma-companion__autosave-hint {
     @apply mt-2 text-xs text-care-stone;
@@ -1349,10 +1423,7 @@
     @apply mt-4;
   }
   .luma-companion__final-log-suggestions {
-    @apply mt-6;
-  }
-  .luma-companion__final-log-actions {
-    @apply mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-care-sage/50 pt-4;
+    @apply mt-3;
   }
   .luma-companion__input-row {
     @apply flex gap-2;

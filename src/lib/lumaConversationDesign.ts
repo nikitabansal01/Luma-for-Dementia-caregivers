@@ -183,14 +183,14 @@ export function buildWarmRecap(draft: LumaDraft): string {
     draft.strategies_tried[0] !== DID_NOT_TRY_CODE;
   if (tried) lines.push("And you tried something when it happened.");
 
-  return `${lines.join(" ")} Would you like me to save this to your log? You can say yes, or tell me what to change.`;
+  return `${lines.join(" ")} Would you like me to save this note? You can say yes, or tell me what to change.`;
 }
 
 export function buildDraftPanelPointer(draft: LumaDraft): string {
   if (!draftHasContent(draft)) {
-    return "Your draft log below is still empty — keep sharing and it'll fill in as we talk.";
+    return "The draft note below is still empty — keep sharing and it'll fill in as we talk.";
   }
-  return "Take a look at your draft log below — you can add or correct anything I missed.";
+  return "Take a look at the draft note below — you can add or correct anything I missed.";
 }
 
 /** @deprecated Prefer on-screen draft panel; keep short for voice/accessibility only. */
@@ -217,7 +217,7 @@ export function buildDraftMirror(draft: LumaDraft): string {
     return "I'm not noting anything specific yet — whenever you're ready, tell me about an observation and I'll capture it here as we talk.";
   }
 
-  return `Here's what I'm holding in your draft log so far: ${parts.join("; ")}. Feel free to add, correct, or keep going — there's no rush.`;
+  return `Here's what I'm holding in your draft note so far: ${parts.join("; ")}. Feel free to add, correct, or keep going — there's no rush.`;
 }
 
 /** Friendly labels for gaps still open in the draft. */
@@ -245,6 +245,7 @@ export function draftHasContent(draft: LumaDraft): boolean {
     draft.behavior_code ||
       draft.behavior_is_custom ||
       draft.episode_recency ||
+      draft.episode_frequency?.trim() ||
       draft.severity ||
       draft.trigger_hypotheses.length > 0 ||
       draft.trigger_detail?.trim() ||
@@ -255,7 +256,7 @@ export function draftHasContent(draft: LumaDraft): boolean {
 
 export function userAskingForDraftSummary(text: string): boolean {
   const n = text.toLowerCase();
-  return /\b(what do you have|what've you got|what have you got|what's captured|what is captured|show me what|draft log|so far|what did you note|what are you noting|what are you logging|recap what|summarize what)\b/.test(
+  return /\b(what do you have|what've you got|what have you got|what's captured|what is captured|show me what|draft note|draft log|so far|what did you note|what are you noting|what are you logging|recap what|summarize what)\b/.test(
     n
   );
 }
@@ -293,6 +294,23 @@ export function buildBehaviorAcknowledgedMessage(label: string): string {
   return `Got it — I'm holding ${spoken} in your draft as we keep going.`;
 }
 
+/** Reflect a strategy the scribe distilled — warm, not survey-style. */
+export function buildStrategyMirrorMessage(proposedLabel: string): string {
+  const label = proposedLabel.trim();
+  if (!label) {
+    return "What did you try, even quietly — sitting with them, redirecting, anything at all?";
+  }
+  const spoken = label.toLowerCase();
+  return `It sounds like ${spoken} might be what you tried — should I add that to your draft?`;
+}
+
+/** After caregiver confirms a custom strategy label. */
+export function buildStrategyAcknowledgedMessage(label: string): string {
+  const spoken = label.trim().toLowerCase();
+  if (!spoken) return "Okay — noted.";
+  return `Got it — I'll add ${spoken} to what you tried.`;
+}
+
 /** Question only — for backstop when the companion already validated feelings. */
 export function buildCompanionGapQuestionBrief(draft: LumaDraft): string {
   const d = applyDraftInference(draft);
@@ -318,7 +336,7 @@ export function buildCompanionGapQuestionBrief(draft: LumaDraft): string {
       }
       return "Did any of that seem to help, even a little — or not really?";
     case "review":
-      return "If your draft log below looks right, say yes to save — or tell me what to change.";
+      return "If the draft note below looks right, say yes to save — or tell me what to change.";
   }
 }
 
@@ -351,14 +369,14 @@ export function buildCompanionScribeBrief(draft: LumaDraft): string {
   const d = applyDraftInference(draft);
   const gap = primaryGap(d);
 
-  return `[Log capture status — shared with your scribe]
+  return `[Capture status — shared with your scribe]
 ${describeConversationState(d)}
 
 Current priority gap: ${gap}
 After you acknowledge what they shared, ask ONE warm question about this gap (adapt naturally):
 "${buildCompanionGapQuestion(d)}"
 
-The scribe fills the draft log from their answer. Caregivers rarely ask what is missing — you lead the conversation there.`;
+The scribe fills the draft note from their answer. Caregivers rarely ask what is missing — you lead the conversation there.`;
 }
 
 function shouldDeferGapNudge(userText: string, gap: ConversationGap): boolean {
