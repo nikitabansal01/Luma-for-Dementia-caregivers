@@ -8,7 +8,7 @@ import {
   getLogInterventionLabel,
   getLogInterventionsAttempted,
   getLogOutcomeDisplay,
-  getLogSeverityDisplay,
+  getLogSeverityLabel,
   getLogTriggerCodes,
   getLogTriggerLabel,
   getEpisodeTimingDisplay,
@@ -35,10 +35,18 @@ function formatTodayDate(): string {
   });
 }
 
-function severityDotClass(severity: number): string {
-  if (severity === 1) return "home-log-row__dot home-log-row__dot--mild";
-  if (severity === 3) return "home-log-row__dot home-log-row__dot--severe";
-  return "home-log-row__dot home-log-row__dot--moderate";
+function severityBadgeClass(severity: number): string {
+  const base = "log-badge ";
+  if (severity === 1) return base + "log-badge--severity-mild";
+  if (severity === 3) return base + "log-badge--severity-severe";
+  return base + "log-badge--severity-moderate";
+}
+
+function outcomeRowClass(tone: NonNullable<ReturnType<typeof getLogOutcomeDisplay>>["tone"] | null): string {
+  if (tone === "helped") return "home-log-row--helped";
+  if (tone === "worse") return "home-log-row--worse";
+  if (tone === "mixed") return "home-log-row--same";
+  return "";
 }
 
 function outcomeBadgeClass(tone: NonNullable<ReturnType<typeof getLogOutcomeDisplay>>["tone"]): string {
@@ -65,25 +73,29 @@ function TodayLogRow({
 
   return (
     <li>
-      <Link href={`/history/${log.id}`} className="home-log-row group">
+      <Link
+        href={`/history/${log.id}`}
+        className={`home-log-row group ${outcomeRowClass(outcomeDisplay?.tone ?? null)}`}
+      >
         <div className="home-log-row__time">
-          <span className="home-log-row__time-primary">{primary}</span>
-          {secondary && <span className="home-log-row__time-secondary">{secondary}</span>}
+          <div className="home-log-row__time-box">
+            <span className="home-log-row__time-primary">{primary}</span>
+            {secondary && <span className="home-log-row__time-secondary">{secondary}</span>}
+          </div>
         </div>
 
         <div className="home-log-row__main">
           <div className="home-log-row__headline">
-            <span className={severityDotClass(log.severity)} aria-hidden />
             <span className="home-log-row__behavior">{behaviorLabel}</span>
-            <span className="home-log-row__severity-label">{getLogSeverityDisplay(log.severity)}</span>
-            {outcomeDisplay && (
-              <span className={`${outcomeBadgeClass(outcomeDisplay.tone)} home-log-row__outcome`}>
-                {outcomeDisplay.label}
-              </span>
-            )}
+            <div className="home-log-row__badges">
+              <span className={severityBadgeClass(log.severity)}>{getLogSeverityLabel(log.severity)}</span>
+              {outcomeDisplay && (
+                <span className={outcomeBadgeClass(outcomeDisplay.tone)}>{outcomeDisplay.label}</span>
+              )}
+            </div>
           </div>
 
-          {(triggerCodes.length > 0 || strategies.length > 0 || preview) && (
+          {(triggerCodes.length > 0 || strategies.length > 0) && (
             <div className="home-log-row__meta">
               {triggerCodes.map((code) => (
                 <span key={code} className="home-log-row__chip">
@@ -95,9 +107,10 @@ function TodayLogRow({
                   {getLogInterventionLabel(s)}
                 </span>
               ))}
-              {preview && <span className="home-log-row__preview">&ldquo;{preview}&rdquo;</span>}
             </div>
           )}
+
+          {preview && <p className="home-log-row__preview">&ldquo;{preview}&rdquo;</p>}
         </div>
 
         <span className="home-log-row__chevron" aria-hidden>
@@ -144,7 +157,12 @@ function TodayLogsPanel({
     <section className="home-today-panel">
       <div className={`home-today-panel__header${logs.length > 0 ? " home-today-panel__header--with-link" : ""}`}>
         <div>
-          <h2 className="home-today-panel__title">Today&apos;s logs</h2>
+          <div className="home-today-panel__title-row">
+            <h2 className="home-today-panel__title">Today&apos;s logs</h2>
+            {logs.length > 0 && (
+              <span className="home-today-panel__count">{logs.length}</span>
+            )}
+          </div>
           <p className="home-today-panel__subtitle">
             {logs.length === 0
               ? "Incidents you log today appear here."
@@ -270,6 +288,13 @@ function HomeActionCards({
 function HomeAffirmationCard() {
   return (
     <div className="home-affirmation-card">
+      <div className="home-affirmation-card__artwork" aria-hidden>
+        <img
+          src="/images/affirmation-hills-sun.png"
+          alt=""
+          className="home-affirmation-card__artwork-image"
+        />
+      </div>
       <div className="home-affirmation-card__content">
         <span className="home-affirmation-card__heart" aria-hidden>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
@@ -291,6 +316,13 @@ function HomeWelcomeCard() {
   return (
     <header className="home-hero">
       <div className="home-hero__grid">
+        <div className="home-hero__artwork" aria-hidden>
+          <img
+            src="/images/hero-greeting-bg.png"
+            alt=""
+            className="home-hero__artwork-image"
+          />
+        </div>
         <div className="home-hero__content">
           <p className="home-hero__eyebrow">{formatTodayDate()}</p>
           <h1 className="home-hero__title">{getTimeGreeting()}</h1>
