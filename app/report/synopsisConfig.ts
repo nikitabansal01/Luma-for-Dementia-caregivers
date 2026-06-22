@@ -31,6 +31,13 @@ export const SYNOPSIS_DISCLAIMER =
 
 export const SYNOPSIS_SAMPLE_LABEL = "Sample report";
 
+/** Minimum logged observations before showing the user's real synopsis. */
+export const SYNOPSIS_MIN_LOGS_FOR_REAL = 3;
+
+export function logsUntilRealSynopsis(logCount: number): number {
+  return Math.max(0, SYNOPSIS_MIN_LOGS_FOR_REAL - logCount);
+}
+
 export function periodLabelForDays(days: number): string {
   return SYNOPSIS_PERIOD_OPTIONS.find((option) => option.days === days)?.label ?? `${days} days`;
 }

@@ -15,9 +15,11 @@ import { getSampleSynopsisReport, MOCK_SYNOPSIS_EXTRAS } from "./sampleSynopsis"
 import {
   periodLabelForDays,
   SYNOPSIS_DISCLAIMER,
+  SYNOPSIS_MIN_LOGS_FOR_REAL,
   SYNOPSIS_PERIOD_OPTIONS,
   SYNOPSIS_SAMPLE_LABEL,
   SYNOPSIS_TABS,
+  logsUntilRealSynopsis,
   type SynopsisTab,
 } from "./synopsisConfig";
 import type { SynopsisProfileLines } from "./synopsisHelpers";
@@ -28,6 +30,7 @@ export default function ReportPage() {
   const [displayData, setDisplayData] = useState<ReportData | null>(null);
   const [realReportData, setRealReportData] = useState<ReportData | null>(null);
   const [isSample, setIsSample] = useState(true);
+  const [realLogCount, setRealLogCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<SynopsisProfileLines>({
     fullContext: null,
@@ -55,12 +58,13 @@ export default function ReportPage() {
 
         if (cancelled) return;
 
-        const usingSample = report.totalIncidents === 0;
+        const usingSample = report.totalIncidents < SYNOPSIS_MIN_LOGS_FOR_REAL;
+        setRealLogCount(report.totalIncidents);
         setIsSample(usingSample);
-        setRealReportData(usingSample ? null : report);
+        setRealReportData(usingSample && report.totalIncidents === 0 ? null : report);
         setDisplayData(usingSample ? getSampleSynopsisReport(days) : report);
 
-        if (usingSample) {
+        if (usingSample && report.totalIncidents === 0) {
           setProfile({
             fullContext: null,
             caregiverLine: MOCK_SYNOPSIS_EXTRAS.caregiverProfileLine,
@@ -104,7 +108,9 @@ export default function ReportPage() {
         <h1 className="font-serif text-2xl font-semibold text-care-forest sm:text-3xl">Synopsis</h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-care-stone">
           {isSample
-            ? "Example insights below — log care observations to replace this with your own synopsis."
+            ? realLogCount === 0
+              ? "You're viewing an example synopsis. Log 3 care observations to see your own."
+              : `You've logged ${realLogCount} of ${SYNOPSIS_MIN_LOGS_FOR_REAL}. Example data below until you reach 3.`
             : "Patterns and summaries from care observations you've logged."}
         </p>
         <p className="synopsis-disclaimer mt-3">{SYNOPSIS_DISCLAIMER}</p>
@@ -147,6 +153,41 @@ export default function ReportPage() {
           </div>
         </div>
       </div>
+
+      {isSample && !loading && (
+        <div className="synopsis-sample-notice no-print" role="status" aria-live="polite">
+          <div className="synopsis-sample-notice__body">
+            <span className="synopsis-sample-notice__badge">{SYNOPSIS_SAMPLE_LABEL}</span>
+            <h2 className="synopsis-sample-notice__title">Example synopsis — not your data yet</h2>
+            <p className="synopsis-sample-notice__text">
+              {realLogCount === 0
+                ? "Everything below is sample data showing what Luma can surface after a few logs."
+                : `You have ${realLogCount} log${realLogCount === 1 ? "" : "s"} so far. Log ${logsUntilRealSynopsis(realLogCount)} more to unlock your personal synopsis.`}
+            </p>
+            <div className="synopsis-sample-notice__progress">
+              <div
+                className="synopsis-sample-notice__progress-track"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={SYNOPSIS_MIN_LOGS_FOR_REAL}
+                aria-valuenow={realLogCount}
+                aria-label="Progress toward your personal synopsis"
+              >
+                <div
+                  className="synopsis-sample-notice__progress-fill"
+                  style={{ width: `${Math.min(100, (realLogCount / SYNOPSIS_MIN_LOGS_FOR_REAL) * 100)}%` }}
+                />
+              </div>
+              <span className="synopsis-sample-notice__progress-label">
+                {realLogCount}/{SYNOPSIS_MIN_LOGS_FOR_REAL} logs
+              </span>
+            </div>
+          </div>
+          <Link href="/" className="synopsis-sample-notice__cta">
+            Log a care moment →
+          </Link>
+        </div>
+      )}
 
       {loading || !displayData ? (
         <div className="card synopsis-loading">

@@ -11,7 +11,6 @@ import {
   getTimePillClass,
   type SynopsisProfileLines,
 } from "./synopsisHelpers";
-import { SYNOPSIS_SAMPLE_LABEL } from "./synopsisConfig";
 import {
   CgIcon,
   ConfidenceBadge,
@@ -52,11 +51,11 @@ export default function CaregiverPatternsView({
         <p className="mt-1 text-sm text-care-stone">{periodLabel}</p>
       </div>
 
-      <section className="cg-summary">
+      <section className={`cg-summary${isSample ? " cg-summary--sample" : ""}`}>
         <div className="cg-summary__header">
           <h2 className="cg-summary__heading">What stood out this period</h2>
           {isSample && (
-            <span className="cg-summary__sample-pill no-print">{SYNOPSIS_SAMPLE_LABEL}</span>
+            <span className="cg-summary__sample-pill no-print">Example data</span>
           )}
         </div>
         <p className="cg-summary__text">{periodSummary}</p>
