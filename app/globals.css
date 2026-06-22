@@ -3,6 +3,13 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --luma-green: #1E5532;
+    --luma-green-soft: #265939;
+    --luma-sage-light: #EAF2EC;
+    --luma-bg: #F8F6F1;
+  }
+
   input[type="date"],
   input[type="datetime-local"],
   input[type="text"],
@@ -35,13 +42,11 @@
     @apply mx-auto max-w-6xl px-4 pb-10 pt-2 sm:px-6 sm:pb-12;
   }
   .site-logo {
-    @apply inline-flex items-center gap-2 no-underline;
+    @apply inline-flex items-center no-underline;
   }
-  .site-logo__leaf {
-    @apply text-care-forest;
-  }
-  .site-logo__text {
-    @apply font-serif text-xl font-semibold text-care-forest;
+  .site-logo__image {
+    @apply block h-10 w-auto sm:h-11;
+    max-height: none;
   }
   .site-nav-link {
     @apply relative pb-1 text-sm font-medium text-care-stone no-underline transition-colors hover:text-care-bark;
@@ -401,8 +406,8 @@
     @apply mt-0.5 text-xs text-care-stone;
   }
   .severity-card__icon--mild {
-    background-color: #b8e0c4;
-    color: #1f5c33;
+    background-color: var(--luma-sage-light);
+    color: var(--luma-green);
   }
   .severity-card__icon--moderate {
     background-color: #f5d76e;
@@ -413,8 +418,8 @@
     color: #8b3a2a;
   }
   .severity-card[data-selected="true"][data-tone="mild"] {
-    border-color: #2d5a3d;
-    background-color: #e8f5ec;
+    border-color: var(--luma-green);
+    background-color: var(--luma-sage-light);
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08);
   }
   .severity-card[data-selected="true"][data-tone="moderate"] {
@@ -761,7 +766,10 @@
     @apply overflow-hidden rounded-2xl border border-care-sage/50 bg-white shadow-card;
   }
   .home-hero__grid {
-    @apply relative grid min-h-[12rem] grid-cols-1 lg:min-h-[15rem];
+    @apply relative grid min-h-[12rem] grid-cols-1 bg-white bg-no-repeat lg:min-h-[15rem];
+    background-image: url("/images/hero-greeting-bg.png");
+    background-size: 88% auto;
+    background-position: 72% center;
   }
   .home-hero__grid::before {
     content: "";
@@ -774,12 +782,6 @@
       rgba(255, 255, 255, 0.35) 66%,
       transparent 100%
     );
-  }
-  .home-hero__background {
-    @apply absolute inset-0;
-  }
-  .home-hero__bg-image {
-    @apply object-cover object-[72%_center];
   }
   .home-hero__content {
     @apply relative z-10 max-w-xl px-6 py-8 sm:px-9 sm:py-9 lg:max-w-[52%] lg:py-10 lg:pl-10 lg:pr-4;
@@ -941,7 +943,10 @@
     @apply mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-care-stone transition-colors group-hover:bg-care-mint/30 group-hover:text-care-forest;
   }
   .home-affirmation-card {
-    @apply relative min-h-[7.5rem] overflow-hidden rounded-2xl border border-care-sage/80 bg-white shadow-card lg:min-h-[9.5rem];
+    @apply relative min-h-[7.5rem] overflow-hidden rounded-2xl border border-care-sage/80 bg-white bg-no-repeat shadow-card lg:min-h-[9.5rem];
+    background-image: url("/images/affirmation-hills-sun.png");
+    background-size: auto 100%;
+    background-position: right center;
   }
   .home-affirmation-card::before {
     content: "";
@@ -955,14 +960,11 @@
       transparent 100%
     );
   }
-  .home-affirmation-card__background {
-    @apply absolute inset-0;
-  }
   .home-affirmation-card__content {
     @apply relative z-10 flex items-start gap-4 px-6 py-8 sm:items-center sm:gap-5 sm:px-8 sm:py-10 lg:max-w-[58%];
   }
   .home-affirmation-card__heart {
-    @apply inline-flex shrink-0 rounded-full bg-care-mint/50 p-2.5 text-care-forest;
+    @apply inline-flex shrink-0 rounded-full bg-care-mint/50 p-3 text-care-forest;
   }
   .home-affirmation-card__text {
     @apply min-w-0 flex-1;
@@ -972,9 +974,6 @@
   }
   .home-affirmation-card__body {
     @apply mt-2 text-sm leading-relaxed text-care-stone sm:text-[0.9375rem];
-  }
-  .home-affirmation-card__image {
-    @apply object-cover object-right;
   }
   .home-active-flow {
     @apply space-y-6;

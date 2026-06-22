@@ -9,12 +9,12 @@ module.exports = {
     extend: {
       colors: {
         care: {
-          cream: "#faf9f6",
-          sage: "#e8ede8",
-          mint: "#d4e5d9",
-          forest: "#1A3C34",
-          forestAction: "#4a7c62",
-          olive: "#5c7c64",
+          cream: "#F8F6F1",
+          sage: "#EAF2EC",
+          mint: "#EAF2EC",
+          forest: "#1E5532",
+          forestAction: "#1E5532",
+          olive: "#265939",
           stone: "#6b6b6b",
           bark: "#3d3d3d",
           sky: "#e0eef4",
