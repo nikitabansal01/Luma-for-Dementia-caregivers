@@ -267,6 +267,32 @@ export function userSignalsWrappingUp(text: string): boolean {
   );
 }
 
+/** Reflect back a behavior in warm, friend-like language — never survey-style ("Would X fit?"). */
+export function buildBehaviorMirrorMessage(proposedLabel: string): string {
+  const label = proposedLabel.trim();
+  if (!label || /^other behavior$/i.test(label)) {
+    return "I'm with you — when you're ready, tell me a little about what you noticed happening.";
+  }
+  const spoken = label.toLowerCase();
+  return `It sounds like ${spoken} might be what you're witnessing — does that feel about right?`;
+}
+
+/** When the story could map to more than one observation type. */
+export function buildBehaviorAlternativesMessage(labels: string[]): string {
+  const cleaned = labels.map((l) => l.trim()).filter(Boolean);
+  if (cleaned.length === 0) return buildBehaviorMirrorMessage("");
+  if (cleaned.length === 1) return buildBehaviorMirrorMessage(cleaned[0]);
+  const [a, b] = cleaned.slice(0, 2).map((l) => l.toLowerCase());
+  return `From what you're sharing, it could sound like ${a} or ${b} — which feels closer to what you saw?`;
+}
+
+/** After caregiver confirms a behavior label. */
+export function buildBehaviorAcknowledgedMessage(label: string): string {
+  const spoken = label.trim().toLowerCase();
+  if (!spoken) return "Okay — I'm following.";
+  return `Got it — I'm holding ${spoken} in your draft as we keep going.`;
+}
+
 /** Question only — for backstop when the companion already validated feelings. */
 export function buildCompanionGapQuestionBrief(draft: LumaDraft): string {
   const d = applyDraftInference(draft);

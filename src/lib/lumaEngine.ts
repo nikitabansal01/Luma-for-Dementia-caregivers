@@ -18,6 +18,9 @@ import {
 } from "./episodeTiming";
 import {
   applyDraftInference,
+  buildBehaviorAcknowledgedMessage,
+  buildBehaviorAlternativesMessage,
+  buildBehaviorMirrorMessage,
   buildWarmRecap,
   generateNaturalFollowUp,
   LUMA_OPENING,
@@ -228,6 +231,45 @@ export function parseBehaviorFromText(
   }
 
   return null;
+}
+
+/** Up to `max` behavior types that might match — for friendly "could be X or Y" mirroring. */
+export function parseBehaviorCandidatesFromText(
+  text: string,
+  customBehaviors: { code: string; label: string }[] = [],
+  max = 2
+): { code: string; label: string; isCustom: boolean }[] {
+  const n = normalize(text);
+  const results: { code: string; label: string; isCustom: boolean }[] = [];
+  const seen = new Set<string>();
+
+  function add(code: string, label: string, isCustom: boolean) {
+    if (seen.has(code)) return;
+    seen.add(code);
+    results.push({ code, label, isCustom });
+  }
+
+  for (const { code, label } of BEHAVIOR_OPTIONS) {
+    const labelNorm = label.toLowerCase();
+    if (n.includes(labelNorm) || labelNorm.split("/").some((p) => n.includes(p.trim()))) {
+      add(code, label, false);
+    }
+  }
+
+  for (const { code, terms } of BEHAVIOR_HINTS) {
+    if (includesAny(n, terms)) {
+      const label = BEHAVIOR_OPTIONS.find((o) => o.code === code)?.label ?? code;
+      add(code, label, false);
+    }
+  }
+
+  for (const custom of customBehaviors) {
+    if (n.includes(custom.label.toLowerCase())) {
+      add(custom.code, custom.label, true);
+    }
+  }
+
+  return results.slice(0, max);
 }
 
 export function parseRecency(text: string): EpisodeRecency | null {
@@ -530,6 +572,17 @@ export function processLumaTurn(
           ],
         };
       }
+      const candidates = parseBehaviorCandidatesFromText(userText, customBehaviors);
+      if (candidates.length >= 2) {
+        return {
+          draft: nextDraft,
+          step: "behavior",
+          lumaMessages: [
+            buildBehaviorAlternativesMessage(candidates.map((candidate) => candidate.label)),
+          ],
+        };
+      }
+
       const label = keywordsToBehaviorLabel(userText);
       if (label === "Other behavior") {
         return {
@@ -541,9 +594,7 @@ export function processLumaTurn(
       return {
         draft: nextDraft,
         step: "behavior",
-        lumaMessages: [
-          `I want to name this in a way that feels right — would "${label}" fit? You can say yes, or put it differently.`,
-        ],
+        lumaMessages: [buildBehaviorMirrorMessage(label)],
         needsCustomBehavior: { label },
       };
     }
@@ -588,7 +639,7 @@ export function confirmCustomBehavior(
     return {
       draft: { ...draft, behavior_label: proposedLabel, behavior_is_custom: true },
       step: "behavior",
-      lumaMessages: [`Got it — we'll call it "${proposedLabel}".`],
+      lumaMessages: [buildBehaviorAcknowledgedMessage(proposedLabel)],
     };
   }
   const reparsed = parseBehaviorFromText(userText, customBehaviors);
@@ -601,11 +652,21 @@ export function confirmCustomBehavior(
     };
     return processLumaTurn("behavior", userText, nextDraft, customBehaviors);
   }
+  const candidates = parseBehaviorCandidatesFromText(userText, customBehaviors);
+  if (candidates.length >= 2) {
+    return {
+      draft,
+      step: "behavior",
+      lumaMessages: [
+        buildBehaviorAlternativesMessage(candidates.map((candidate) => candidate.label)),
+      ],
+    };
+  }
   const label = keywordsToBehaviorLabel(userText);
   return {
     draft,
     step: "behavior",
-    lumaMessages: [`How about "${label}"? Say yes if that works.`],
+    lumaMessages: [buildBehaviorMirrorMessage(label)],
     needsCustomBehavior: { label },
   };
 }

@@ -278,7 +278,7 @@ flowchart TD
 
 | Layer | Trigger | Typical outcome | Acknowledge only? |
 |-------|---------|-------------------|-------------------|
-| **0 — Routing** | `pendingCustomLabel`, greeting, no behavior yet | Welcome, invite story, or **behavior clarifying question** (“Would *wandering* fit?”) | Yes for pure greeting (`shouldDeferGapNudge`) |
+| **0 — Routing** | `pendingCustomLabel`, greeting, no behavior yet | Welcome, invite story, or **behavior mirror** ("It sounds like wandering might be what you're witnessing") | Yes for pure greeting (`shouldDeferGapNudge`) |
 | **1 — Heuristics** | Every utterance | Pre-fill draft before LLMs run | N/A (silent) |
 | **2 — Companion LLM** | LLM configured | Acknowledge + **one gap question** per prompt contract | Only if model ignores contract |
 | **2 — Scribe LLM** | LLM configured | Silent `draft_updates` | N/A |
@@ -293,7 +293,7 @@ flowchart TD
 | Short greeting at start | Acknowledge only; defer gap question | `shouldDeferGapNudge` |
 | User shares emotional story | Acknowledge first, then **one gap question** | Companion prompt + `ensureCompanionGapNudge` |
 | User dumps many details at once | Acknowledge; scribe fills multiple fields; companion **does not re-ask** captured gaps | `describeConversationState` “Already understood” |
-| Behavior unclear | **Clarifying question** (label fit?), not gap question | `processLumaTurn` / `needsCustomBehavior` |
+| Behavior unclear | **Mirror or gentle alternative** ("It sounds like X…" / "could be X or Y") | `buildBehaviorMirrorMessage` / `needsCustomBehavior` |
 | User asks “what do you have?” | Point to draft panel; **no** field readback | `userAskingForDraftSummary` |
 | All gaps filled | Invite save; show `LumaFinalLogEditor` | `primaryGap === review` |
 | LLM only empathizes, no question | Acknowledge + **appended gap question** | `ensureCompanionGapNudge` |

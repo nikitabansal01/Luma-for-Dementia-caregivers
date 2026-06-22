@@ -214,7 +214,7 @@ flowchart TB
 ```mermaid
 flowchart TD
   IN[Incoming user message] --> R0{Custom behavior pending?}
-  R0 -->|yes| B1[Clarify label\nWould X fit?]
+  R0 -->|yes| B1[Mirror behavior\nIt sounds like X…]
   R0 -->|no| R1{Pure greeting\nand story gap?}
   R1 -->|yes| A1[Acknowledge only\nDefer gap question]
   R1 -->|no| R2{All gaps filled?}
@@ -233,7 +233,7 @@ flowchart TD
 | Layer | What triggers it | Companion behavior |
 |-------|------------------|-------------------|
 | **Greeting guard** | Short hi/thanks at start | Acknowledge only — no survey yet |
-| **Behavior clarify** | Story described but no `behavior_code` | Clarifying question (*“Would wandering fit?”*), not timing/triggers |
+| **Behavior mirror** | Story described but no `behavior_code` | Reflect back warmly (*"It sounds like wandering might be what you're witnessing"*) or offer X or Y if ambiguous |
 | **Gap lead (default)** | Any gap open after acknowledgment | Ask **one** question for `primaryGap` — timing, intensity, possible triggers, strategies, outcome |
 | **Absorb mode** | Rich utterance; scribe captures multiple fields | Reflect what you heard; **don’t re-ask** filled gaps |
 | **Draft mirror** | User asks what’s captured | Point to draft panel — never read fields aloud |
@@ -296,6 +296,7 @@ Debounced `localStorage`; clear on commit. Draft resilience ≠ record integrity
 | One model, two jobs | Companion + Scribe split | Decompose AI workloads by success metric |
 | Felt like clinical survey | Narrative gaps; forbid form language in prompts | Schema is backend; story is frontend |
 | Companion too passive | Shared scribe brief + proactive gap questions + backstop | Users won't ask what's missing — product must lead |
+| Survey-like behavior naming | Friend-style mirrors ("It sounds like wandering…") not "Would X fit?" | Clinical intake tone breaks trust in emotional moments |
 | “Morning” as trigger not time | Exclude Time-category from trigger extraction | Domain taxonomy errors erode clinician trust |
 | Scribe mis-extraction | Editable final log before save | Model confidence ≠ user consent |
 
@@ -342,7 +343,7 @@ Review: Caregiver edits, then saves.
 | “Hi” | story | Welcome only — defer gap question |
 | “She kept pacing and yelling at dinner” | story → timing | Reflect + ask when / part of day |
 | Long story with timing + triggers in one breath | jumps toward intensity/response | Reflect; scribe absorbs; ask **next** open gap only |
-| “Would wandering fit?” pending | story (clarify) | **Clarifying** behavior label — not a gap question |
+| Behavior mirror pending | story | *"It sounds like wandering might be what you're witnessing — does that feel about right?"* |
 | All fields captured | review | Invite save; show final editor |
 
 See **Product architecture → Companion decision layers** above for full decision tree.

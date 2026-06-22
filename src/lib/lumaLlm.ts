@@ -17,6 +17,7 @@ import type { LumaDraft, LumaStep } from "./lumaEngine";
 import { applyHeuristicExtraction, isGreetingOrSmallTalk, keywordsToBehaviorLabel } from "./lumaEngine";
 import {
   applyDraftInference,
+  buildBehaviorMirrorMessage,
   buildCompanionScribeBrief,
   buildDraftPanelPointer,
   describeConversationState,
@@ -188,6 +189,8 @@ ${scribeBrief}${turnDirective}${transparencyBlock}
 - Validate feelings first, especially after frightening events (wandering, aggression, falls).
 - Offer brief, compassionate dementia context when it helps (e.g. searching for a childhood home often reflects time/place confusion).
 - When they seem to pause or finish a thought, ask about the current priority gap — still in conversational language.
+- When naming what happened, **mirror** what you heard like a friend: "It sounds like wandering might be what you're witnessing" — never "Would X fit?" or "Say yes if that works."
+- If you're unsure between two observations, offer gently: "It could sound like X or Y — which feels closer?"
 
 ## Formatting (for on-screen reading)
 - Use short paragraphs (1–3 sentences), separated by a blank line between each.
@@ -206,6 +209,8 @@ Logging, forms, fields, severity scales, trigger codes, episode timing categorie
 - "How intense on a scale of..."
 - "What was the episode time of day?"
 - "What else do you need from me?" (they won't ask — you lead)
+- "Would [behavior] fit?" / "Does that work for you?" / "Say yes if..."
+- "I want to name this..." / clinical intake or form language
 - Numbered questions or bullet lists of options
 - Survey-style back-to-back questions
 
@@ -641,8 +646,16 @@ export async function processLumaTurnWithLlm(
   if (scribeResult) {
     const merged = mergeDraft(workingDraft, scribeResult.draft_updates, customBehaviors);
     if (merged.needsCustomBehavior) {
+      const mirror = buildBehaviorMirrorMessage(merged.needsCustomBehavior.label);
+      const trimmedReply = reply.trim();
+      const behaviorReply =
+        trimmedReply && /\?/.test(trimmedReply)
+          ? trimmedReply
+          : trimmedReply
+            ? `${trimmedReply}\n\n${mirror}`
+            : mirror;
       return {
-        reply,
+        reply: behaviorReply,
         draft: merged.draft,
         step: "behavior",
         needsCustomBehavior: merged.needsCustomBehavior,
