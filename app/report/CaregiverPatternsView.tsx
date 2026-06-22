@@ -1,9 +1,9 @@
 import type { ReportData, SynopsisLogPreview } from "@/src/lib/repo";
-import Link from "next/link";
 import {
   buildCaregiverAppointmentQuestions,
   buildCaregiverBehaviorRows,
-  buildCaregiverGlanceStats,
+  buildCaregiverHighlightChips,
+  buildCaregiverPeriodSummary,
   buildHelpfulStrategies,
   buildReducibleTriggers,
   buildStrategiesToRethink,
@@ -25,7 +25,7 @@ import {
 export default function CaregiverPatternsView({
   data,
   periodLabel,
-  profile,
+  profile: _profile,
   recentMoments: _recentMoments,
   isSample = false,
 }: {
@@ -35,7 +35,8 @@ export default function CaregiverPatternsView({
   recentMoments: SynopsisLogPreview[];
   isSample?: boolean;
 }) {
-  const glanceStats = buildCaregiverGlanceStats(data);
+  const periodSummary = buildCaregiverPeriodSummary(data);
+  const highlightChips = buildCaregiverHighlightChips(data);
   const behaviorRows = buildCaregiverBehaviorRows(data);
   const reducibleTriggers = buildReducibleTriggers(data);
   const helpfulStrategies = buildHelpfulStrategies(data);
@@ -51,50 +52,40 @@ export default function CaregiverPatternsView({
         <p className="mt-1 text-sm text-care-stone">{periodLabel}</p>
       </div>
 
-      <section className="cg-glance">
-        <div className="cg-glance__header">
-          <h2 className="cg-glance__heading">This period at a glance</h2>
+      <section className="cg-summary">
+        <div className="cg-summary__header">
+          <h2 className="cg-summary__heading">What stood out this period</h2>
           {isSample && (
-            <span className="cg-glance__sample-pill no-print">{SYNOPSIS_SAMPLE_LABEL}</span>
+            <span className="cg-summary__sample-pill no-print">{SYNOPSIS_SAMPLE_LABEL}</span>
           )}
         </div>
-        <div className="cg-glance-grid" role="list">
-          {glanceStats.map((stat) => (
-            <div
-              key={stat.id}
-              role="listitem"
-              className={`cg-glance-card cg-glance-card--${stat.id}`}
-            >
-              <span className={`cg-glance-card__icon cg-glance-card__icon--${stat.icon}`}>
-                <CgIcon name={stat.icon} />
-              </span>
-              <div className="cg-glance-card__body">
-                <p className="cg-glance-card__label">{stat.label}</p>
-                <p className="cg-glance-card__value">{stat.value}</p>
+        <p className="cg-summary__text">{periodSummary}</p>
+        {highlightChips.length > 0 && (
+          <div className="cg-summary__chips">
+            {highlightChips.map((chip) => (
+              <div key={chip.id} className={`cg-summary__chip cg-summary__chip--${chip.id}`}>
+                <span className="cg-summary__chip-label">{chip.label}</span>
+                <span className="cg-summary__chip-value">{chip.value}</span>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
-      {(profile.caregiverLine || profile.caredForLine) && (
-        <div className="synopsis-profile-lines cg-profile-strip">
-          {profile.caregiverLine && (
-            <p className="synopsis-profile-lines__item">
-              <span className="synopsis-profile-lines__label">You</span>
-              {profile.caregiverLine}
-            </p>
-          )}
-          {profile.caredForLine && (
-            <p className="synopsis-profile-lines__item">
-              <span className="synopsis-profile-lines__label">Person you care for</span>
-              {profile.caredForLine}
-            </p>
-          )}
-        </div>
-      )}
-
       <div className="cg-dashboard-grid">
+        <DashboardCard title="Questions to bring up during appointment" className="cg-card--questions cg-card--wide">
+          <ul className="cg-question-list">
+            {appointmentQuestions.map((question) => (
+              <li key={question.id} className="cg-question-list__item">
+                <span className="cg-question-list__icon">
+                  <CgIcon name="question" />
+                </span>
+                <p>{question.text}</p>
+              </li>
+            ))}
+          </ul>
+        </DashboardCard>
+
         <DashboardCard title="Top recurring behaviors" className="cg-card--behaviors">
           {!hasData || behaviorRows.length === 0 ? (
             <p className="cg-empty">Log behaviors to see what shows up most.</p>
@@ -228,18 +219,6 @@ export default function CaregiverPatternsView({
           </ul>
         </DashboardCard>
 
-        <DashboardCard title="Questions to bring up during appointment" className="cg-card--questions">
-          <ul className="cg-question-list">
-            {appointmentQuestions.map((question) => (
-              <li key={question.id} className="cg-question-list__item">
-                <span className="cg-question-list__icon">
-                  <CgIcon name="question" />
-                </span>
-                <p>{question.text}</p>
-              </li>
-            ))}
-          </ul>
-        </DashboardCard>
       </div>
     </div>
   );

@@ -148,24 +148,6 @@ export default function ReportPage() {
         </div>
       </div>
 
-      {isSample && (
-        <div className="synopsis-sample-banner no-print">
-          <div className="synopsis-sample-banner__content">
-            <span className="synopsis-sample-banner__pill">{SYNOPSIS_SAMPLE_LABEL}</span>
-            <h2 className="synopsis-sample-banner__title">Preview your first synopsis</h2>
-            <p className="synopsis-sample-banner__text">
-              After a few logs, Luma turns care moments into patterns, trigger insights, and questions
-              for your next appointment.
-            </p>
-          </div>
-          <div className="synopsis-sample-banner__cta-wrap">
-            <Link href="/" className="synopsis-sample-banner__cta">
-              Start logging
-            </Link>
-          </div>
-        </div>
-      )}
-
       {loading || !displayData ? (
         <div className="card synopsis-loading">
           <p className="text-sm text-care-stone">Loading {activeTab === "caregiver" ? "for caregivers" : "for clinicians"}…</p>

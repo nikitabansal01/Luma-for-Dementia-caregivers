@@ -215,60 +215,18 @@
     @apply inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-care-sage bg-white/70 px-4 py-3 text-sm font-semibold text-care-forest transition-colors hover:border-care-olive/50 hover:bg-care-mint/20 sm:w-auto;
   }
 
-  /* Synopsis sample CTA panels (banner, footer) */
-  .synopsis-sample-banner {
-    @apply rounded-2xl border border-care-sage/60 bg-white shadow-card;
-    display: grid;
-    grid-template-columns: 1fr;
-    padding: 1.25rem;
-  }
-  @media (min-width: 640px) {
-    .synopsis-sample-banner {
-      grid-template-columns: minmax(0, 1fr) 280px;
-      align-items: center;
-      column-gap: 3rem;
-      padding: 2rem 2.5rem;
-      min-height: 10.5rem;
-    }
-  }
+  /* Synopsis sample CTA panels (footer) */
   .synopsis-sample-footer {
     @apply flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:gap-8 sm:p-6;
-  }
-  .synopsis-sample-banner__content {
-    @apply min-w-0 space-y-2;
-  }
-  .synopsis-sample-banner__pill {
-    @apply inline-flex w-fit rounded-full border border-care-sage/70 bg-care-cream/60 px-2.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-care-forest;
   }
   .synopsis-sample-footer__content {
     @apply min-w-0 flex-1 space-y-2;
   }
-  .synopsis-sample-banner__title {
-    @apply font-serif text-xl font-semibold leading-tight text-care-forest;
-  }
   .synopsis-sample-footer__title {
     @apply font-serif text-base font-semibold leading-snug text-care-forest sm:text-lg;
   }
-  .synopsis-sample-banner__text {
-    @apply text-sm leading-relaxed text-care-stone;
-  }
   .synopsis-sample-footer__text {
     @apply max-w-2xl text-sm leading-relaxed text-care-stone;
-  }
-  .synopsis-sample-banner__cta-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 1.5rem;
-  }
-  @media (min-width: 640px) {
-    .synopsis-sample-banner__cta-wrap {
-      margin-top: 0;
-    }
-  }
-  .synopsis-sample-banner__cta {
-    @apply inline-flex w-full items-center justify-center rounded-lg bg-care-forest px-7 py-2.5 text-sm font-semibold leading-normal text-white no-underline shadow-sm transition-colors hover:bg-care-olive sm:w-auto;
-    min-width: 10.5rem;
   }
   .synopsis-sample-footer__cta {
     @apply ml-auto inline-flex shrink-0 items-center justify-center rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive;
@@ -789,62 +747,47 @@
   .cg-dashboard {
     @apply space-y-5;
   }
-  .cg-glance__header {
+  .cg-summary__header {
     @apply mb-3 flex flex-wrap items-center gap-x-3 gap-y-1;
   }
-  .cg-glance__heading {
+  .cg-summary__heading {
     @apply font-serif text-lg font-semibold text-care-forest;
   }
-  .cg-glance__sample-pill {
+  .cg-summary__sample-pill {
     @apply inline-flex rounded-full border border-care-mint bg-care-mint/20 px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-care-forest;
   }
-  .cg-glance-grid {
-    @apply grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6;
+  .cg-summary {
+    @apply rounded-2xl border border-care-sage/70 bg-white p-5 shadow-card sm:p-6;
   }
-  .cg-glance-card {
-    @apply flex min-h-[5.5rem] flex-col gap-2.5 rounded-xl border border-care-sage/70 bg-white p-3 shadow-card sm:p-3.5;
+  .cg-summary__text {
+    @apply max-w-3xl text-sm leading-relaxed text-care-bark sm:text-[0.9375rem] sm:leading-relaxed;
   }
-  .cg-glance-card__icon {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-care-cream/80 text-care-forest;
+  .cg-summary__chips {
+    @apply mt-4 flex flex-wrap gap-2.5;
   }
-  .cg-glance-card__icon--logs {
-    @apply bg-care-mint/30 text-care-forest;
+  .cg-summary__chip {
+    @apply inline-flex max-w-full flex-wrap items-baseline gap-x-2 rounded-full border px-3.5 py-2 text-sm;
   }
-  .cg-glance-card__icon--behavior {
-    @apply bg-care-sage/35 text-care-olive;
+  .cg-summary__chip--watch {
+    @apply border-amber-200/80 bg-amber-50/80;
   }
-  .cg-glance-card__icon--time {
-    @apply bg-care-cream text-care-bark;
+  .cg-summary__chip--strategy {
+    @apply border-care-mint bg-care-mint/20;
   }
-  .cg-glance-card__icon--trigger {
-    @apply bg-amber-50 text-amber-800;
+  .cg-summary__chip-label {
+    @apply font-medium text-care-stone;
   }
-  .cg-glance-card__icon--strategy {
-    @apply bg-care-mint/20 text-care-forest;
-  }
-  .cg-glance-card__icon--watch {
-    @apply bg-rose-50 text-rose-800;
-  }
-  .cg-glance-card__icon .cg-icon {
-    @apply h-4 w-4;
-  }
-  .cg-icon {
-    @apply h-5 w-5;
-  }
-  .cg-glance-card__body {
-    @apply min-w-0;
-  }
-  .cg-glance-card__label {
-    @apply text-[0.6875rem] font-medium uppercase leading-tight tracking-wide text-care-stone;
-  }
-  .cg-glance-card__value {
-    @apply mt-0.5 text-sm font-semibold leading-snug text-care-forest;
-  }
-  .cg-profile-strip {
-    @apply mt-0;
+  .cg-summary__chip-value {
+    @apply font-semibold text-care-forest;
   }
   .cg-dashboard-grid {
     @apply grid gap-4 lg:grid-cols-2;
+  }
+  .cg-card--wide {
+    grid-column: 1 / -1;
+  }
+  .cg-icon {
+    @apply h-5 w-5;
   }
   .cg-card {
     @apply rounded-2xl border border-care-sage/80 bg-white p-5 shadow-card;

@@ -547,6 +547,67 @@ export function buildCaregiverGlanceStats(data: ReportData): CaregiverGlanceStat
   ];
 }
 
+export type CaregiverHighlightChip = {
+  id: "watch" | "strategy";
+  label: string;
+  value: string;
+};
+
+/** Plain-language headline for the caregiver synopsis — one story, not six metrics. */
+export function buildCaregiverPeriodSummary(data: ReportData): string {
+  if (data.totalIncidents === 0) {
+    return buildCaregiverIntro(data);
+  }
+
+  const topBehavior = data.topBehaviors[0];
+  const peakTime = data.timeOfDayPattern[0];
+  const topTrigger = data.topTriggersOverall[0];
+  const helpful = buildHelpfulStrategies(data)[0];
+  const primaryBehaviorCode = topBehavior?.behavior ?? "OTHER_BEHAVIOR";
+
+  const lead = topBehavior
+    ? `${getBehaviorLabel(topBehavior.behavior)} showed up most often`
+    : "A few patterns stood out from your logs";
+
+  let context = "";
+  if (peakTime && topTrigger) {
+    const triggerLabel = getTriggerDisplayLabel(topTrigger.trigger, primaryBehaviorCode).toLowerCase();
+    context = `, especially in the ${peakTime.period.toLowerCase()} around ${triggerLabel}`;
+  } else if (peakTime) {
+    context = `, especially in the ${peakTime.period.toLowerCase()}`;
+  } else if (topTrigger) {
+    context = `, often around ${getTriggerDisplayLabel(topTrigger.trigger, primaryBehaviorCode).toLowerCase()}`;
+  }
+
+  const strategyNote = helpful ? ` ${helpful.label} helped most.` : "";
+
+  return `${lead}${context}.${strategyNote}`.replace(/\.\./g, ".");
+}
+
+export function buildCaregiverHighlightChips(data: ReportData): CaregiverHighlightChip[] {
+  if (data.totalIncidents === 0) return [];
+
+  const chips: CaregiverHighlightChip[] = [];
+  const peakTime = data.timeOfDayPattern[0];
+  const topTrigger = data.topTriggersOverall[0];
+  const primaryBehaviorCode = data.topBehaviors[0]?.behavior ?? "OTHER_BEHAVIOR";
+  const watch = buildWatchAreaLabel(data);
+
+  let watchValue = watch.value;
+  if (peakTime && topTrigger) {
+    watchValue = `${peakTime.period} ${getTriggerDisplayLabel(topTrigger.trigger, primaryBehaviorCode).toLowerCase()}`;
+  }
+
+  chips.push({ id: "watch", label: "Watch", value: watchValue });
+
+  const helpful = buildHelpfulStrategies(data)[0];
+  if (helpful) {
+    chips.push({ id: "strategy", label: "Helpful", value: helpful.label });
+  }
+
+  return chips.slice(0, 2);
+}
+
 export function buildCaregiverBehaviorRows(data: ReportData): CaregiverBehaviorRow[] {
   const context = strategyContext(data);
   const fallbackTime = data.timeOfDayPattern[0]?.period ?? null;
