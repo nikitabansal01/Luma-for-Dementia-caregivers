@@ -193,7 +193,6 @@ export default function ReportPage() {
               data={displayData}
               periodLabel={periodLabel}
               profile={profile}
-              isSample={isSample}
             />
           )}
 

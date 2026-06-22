@@ -216,13 +216,21 @@
   }
 
   /* Synopsis sample CTA panels (banner, footer) */
-  .synopsis-sample-banner,
+  .synopsis-sample-banner {
+    @apply grid grid-cols-1 items-center gap-6 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-10 sm:p-6;
+  }
   .synopsis-sample-footer {
     @apply flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:gap-8 sm:p-6;
   }
   .synopsis-sample-banner__content,
   .synopsis-sample-footer__content {
-    @apply min-w-0 flex-1 space-y-2;
+    @apply min-w-0 space-y-2;
+  }
+  .synopsis-sample-banner__content {
+    @apply flex-1;
+  }
+  .synopsis-sample-footer__content {
+    @apply flex-1;
   }
   .synopsis-sample-banner__eyebrow {
     @apply text-xs font-semibold uppercase tracking-wider text-care-forest;
@@ -233,9 +241,17 @@
   }
   .synopsis-sample-banner__text,
   .synopsis-sample-footer__text {
-    @apply max-w-2xl text-sm leading-relaxed text-care-stone;
+    @apply text-sm leading-relaxed text-care-stone;
   }
-  .synopsis-sample-banner__cta,
+  .synopsis-sample-banner__text {
+    @apply max-w-xl;
+  }
+  .synopsis-sample-footer__text {
+    @apply max-w-2xl;
+  }
+  .synopsis-sample-banner__cta {
+    @apply inline-flex shrink-0 items-center justify-center justify-self-end rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive sm:justify-self-center;
+  }
   .synopsis-sample-footer__cta {
     @apply ml-auto inline-flex shrink-0 items-center justify-center rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive;
   }

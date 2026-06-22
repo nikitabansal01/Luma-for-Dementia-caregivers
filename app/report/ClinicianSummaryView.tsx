@@ -11,11 +11,9 @@ import {
   SynopsisTimelineBar,
 } from "./SynopsisCharts";
 import {
-  buildClinicianCoverageNote,
   trendClinicianLabel,
   type SynopsisProfileLines,
 } from "./synopsisHelpers";
-import { SYNOPSIS_SAMPLE_LABEL } from "./synopsisConfig";
 
 function formatComparisonChange(value: number, unit: string): string {
   if (value === 0) return `No change in ${unit}`;
@@ -27,12 +25,10 @@ export default function ClinicianSummaryView({
   data,
   periodLabel,
   profile,
-  isSample = false,
 }: {
   data: ReportData;
   periodLabel: string;
   profile: SynopsisProfileLines;
-  isSample?: boolean;
 }) {
   const primaryBehavior = data.topBehaviors[0]?.behavior ?? "OTHER_BEHAVIOR";
   const outcomeSegments = [
@@ -45,7 +41,6 @@ export default function ClinicianSummaryView({
     { label: "Made worse", value: data.strategyOutcomes.madeWorse, color: "#c45c4a" },
     { label: "Not sure", value: data.strategyOutcomes.notSure, color: "#6b6b6b" },
   ].filter((segment) => segment.value > 0);
-  const coverageNote = buildClinicianCoverageNote(data);
   const contextLine = profile.fullContext ?? data.careContext;
 
   return (
@@ -54,19 +49,6 @@ export default function ClinicianSummaryView({
         <h1 className="font-serif text-2xl font-semibold text-care-forest">For clinicians</h1>
         <p className="mt-1 text-sm text-care-stone">{periodLabel}</p>
       </div>
-
-      <section className="card synopsis-section synopsis-section--observational">
-        {isSample && (
-          <p className="synopsis-section__sample-label">{SYNOPSIS_SAMPLE_LABEL}</p>
-        )}
-        <h2 className="card-heading mb-2">Observational care log summary</h2>
-        <p className="text-sm leading-relaxed text-care-bark">
-          {isSample
-            ? "Example caregiver-entered observations for illustration. Log your own care observations to generate a real summary."
-            : `Caregiver-entered behavioral observations over ${periodLabel.toLowerCase()}. Intended to support care conversations — not a clinical assessment or diagnosis.`}
-        </p>
-        <p className="synopsis-clinician-coverage mt-3">{coverageNote}</p>
-      </section>
 
       {contextLine && (
         <section className="card synopsis-section synopsis-section--context">
