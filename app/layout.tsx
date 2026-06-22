@@ -41,7 +41,6 @@ export default function RootLayout({
               <NavLink href="/history">History</NavLink>
               <NavLink href="/report">Synopsis</NavLink>
               <NavLink href="/profile">Profile</NavLink>
-              <NavLink href="/coach-rules">Coach</NavLink>
             </div>
           </div>
         </nav>

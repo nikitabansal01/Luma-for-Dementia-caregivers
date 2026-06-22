@@ -302,63 +302,77 @@ export default function CareProfileForm({
             </div>
           </div>
 
-          <div className="care-profile-form__field">
-            <span className="care-profile-form__label">Age range</span>
-            <div className="care-profile-form__stage-grid" role="radiogroup" aria-label="Age range">
-              {AGE_RANGES.map((range) => (
-                <label key={range.code} className="care-profile-form__stage-option">
-                  <input
-                    type="radio"
-                    name="care-age-range"
-                    value={range.code}
-                    checked={values.age_range === range.code}
-                    onChange={() => setValues((v) => ({ ...v, age_range: range.code }))}
-                  />
-                  <span>{range.label}</span>
-                </label>
-              ))}
+          <div className="care-profile-form__row">
+            <div className="care-profile-form__field">
+              <label htmlFor="care-age-range" className="care-profile-form__label">
+                Age range
+              </label>
+              <select
+                id="care-age-range"
+                value={values.age_range}
+                onChange={(e) =>
+                  setValues((v) => ({
+                    ...v,
+                    age_range: e.target.value as AgeRangeCode,
+                  }))
+                }
+                required
+              >
+                <option value="">Select…</option>
+                {AGE_RANGES.map((range) => (
+                  <option key={range.code} value={range.code}>
+                    {range.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          <div className="care-profile-form__field">
-            <span className="care-profile-form__label">Diagnosis journey</span>
-            <div className="care-profile-form__stage-grid" role="radiogroup" aria-label="Diagnosis journey">
-              {DEMENTIA_STAGES.map((s) => (
-                <label key={s.code} className="care-profile-form__stage-option">
-                  <input
-                    type="radio"
-                    name="diagnosis-journey"
-                    value={s.code}
-                    checked={values.stage === s.code}
-                    onChange={() => setValues((v) => ({ ...v, stage: s.code }))}
-                  />
-                  <span>{s.label}</span>
-                </label>
-              ))}
+            <div className="care-profile-form__field">
+              <label htmlFor="care-diagnosis" className="care-profile-form__label">
+                Diagnosis journey
+              </label>
+              <select
+                id="care-diagnosis"
+                value={values.stage}
+                onChange={(e) =>
+                  setValues((v) => ({
+                    ...v,
+                    stage: e.target.value as DementiaStageCode,
+                  }))
+                }
+                required
+              >
+                <option value="">Select…</option>
+                {DEMENTIA_STAGES.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          <div className="care-profile-form__field">
-            <label htmlFor="care-living" className="care-profile-form__label">
-              Living situation <span className="font-normal text-care-stone">(optional)</span>
-            </label>
-            <select
-              id="care-living"
-              value={values.living_situation}
-              onChange={(e) =>
-                setValues((v) => ({
-                  ...v,
-                  living_situation: e.target.value as LivingSituationCode | "",
-                }))
-              }
-            >
-              <option value="">Select if you&apos;d like…</option>
-              {LIVING_SITUATIONS.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
+            <div className="care-profile-form__field">
+              <label htmlFor="care-living" className="care-profile-form__label">
+                Living situation <span className="font-normal text-care-stone">(optional)</span>
+              </label>
+              <select
+                id="care-living"
+                value={values.living_situation}
+                onChange={(e) =>
+                  setValues((v) => ({
+                    ...v,
+                    living_situation: e.target.value as LivingSituationCode | "",
+                  }))
+                }
+              >
+                <option value="">Select if you&apos;d like…</option>
+                {LIVING_SITUATIONS.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </section>
