@@ -21,8 +21,6 @@ import {
   type SynopsisTab,
 } from "./synopsisConfig";
 import type { SynopsisProfileLines } from "./synopsisHelpers";
-import { SynopsisTabIcon } from "./SynopsisTabIcon";
-
 export default function ReportPage() {
   const [activeTab, setActiveTab] = useState<SynopsisTab>("caregiver");
   const [caregiverDays, setCaregiverDays] = useState(30);
@@ -101,7 +99,7 @@ export default function ReportPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header className="no-print">
         <h1 className="font-serif text-2xl font-semibold text-care-forest sm:text-3xl">Synopsis</h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-care-stone">
@@ -113,31 +111,27 @@ export default function ReportPage() {
       </header>
 
       <div className="synopsis-shell no-print">
-        <div className="synopsis-tabs" role="tablist" aria-label="Synopsis view">
-          {SYNOPSIS_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={`synopsis-tab${activeTab === tab.id ? " synopsis-tab--active" : ""}`}
-              onClick={() => handleTabChange(tab.id)}
-            >
-              <SynopsisTabIcon tab={tab.id} />
-              <span className="synopsis-tab__text">
-                <span className="synopsis-tab__title">{tab.label}</span>
-                <span className="synopsis-tab__subtitle">{tab.subtitle}</span>
-              </span>
-            </button>
-          ))}
-        </div>
+        <div className="synopsis-controls">
+          <div className="synopsis-tabs" role="tablist" aria-label="Synopsis view">
+            {SYNOPSIS_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={`synopsis-tab${activeTab === tab.id ? " synopsis-tab--active" : ""}`}
+                onClick={() => handleTabChange(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-        <div className="synopsis-toolbar">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="synopsis-controls__actions">
             <select
               value={days}
               onChange={(e) => handleDaysChange(Number(e.target.value))}
-              className="min-w-[160px] flex-1 sm:flex-none"
+              className="synopsis-period-select"
               aria-label="Time range"
             >
               {SYNOPSIS_PERIOD_OPTIONS.map((option) => (
@@ -148,9 +142,7 @@ export default function ReportPage() {
             </select>
 
             {activeTab === "clinician" && !isSample && realReportData && (
-              <div className="flex flex-wrap gap-2 sm:ml-auto">
-                <SynopsisExportActions data={realReportData} days={days} />
-              </div>
+              <SynopsisExportActions data={realReportData} days={days} />
             )}
           </div>
         </div>
@@ -158,13 +150,15 @@ export default function ReportPage() {
 
       {isSample && (
         <div className="synopsis-sample-banner no-print">
-          <div className="synopsis-sample-banner__content">
-            <p className="synopsis-sample-banner__eyebrow">{SYNOPSIS_SAMPLE_LABEL}</p>
-            <h2 className="synopsis-sample-banner__title">This is what your synopsis could look like</h2>
-            <p className="synopsis-sample-banner__text">
-              After a few weeks of logging, Luma turns everyday notes into patterns, trigger insights,
-              and appointment-ready questions — like the example below.
-            </p>
+          <div className="synopsis-sample-banner__main">
+            <span className="synopsis-sample-banner__pill">{SYNOPSIS_SAMPLE_LABEL}</span>
+            <div className="synopsis-sample-banner__copy">
+              <h2 className="synopsis-sample-banner__title">This is what your synopsis could look like</h2>
+              <p className="synopsis-sample-banner__text">
+                After a few weeks of logging, everyday notes become patterns, trigger insights, and
+                appointment-ready questions.
+              </p>
+            </div>
           </div>
           <Link href="/" className="synopsis-sample-banner__cta">
             Start logging today →

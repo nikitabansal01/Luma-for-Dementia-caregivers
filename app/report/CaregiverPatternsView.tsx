@@ -51,24 +51,27 @@ export default function CaregiverPatternsView({
         <p className="mt-1 text-sm text-care-stone">{periodLabel}</p>
       </div>
 
-      {isSample && (
-        <p className="synopsis-section__sample-label no-print">{SYNOPSIS_SAMPLE_LABEL}</p>
-      )}
-
       <section className="cg-glance">
-        <h2 className="cg-glance__heading">This period at a glance</h2>
-        <div className="cg-glance-strip" role="list">
+        <div className="cg-glance__header">
+          <h2 className="cg-glance__heading">This period at a glance</h2>
+          {isSample && (
+            <span className="cg-glance__sample-pill no-print">{SYNOPSIS_SAMPLE_LABEL}</span>
+          )}
+        </div>
+        <div className="cg-glance-grid" role="list">
           {glanceStats.map((stat) => (
             <div
               key={stat.id}
               role="listitem"
-              className={`cg-glance-cell cg-glance-cell--${stat.id}`}
+              className={`cg-glance-card cg-glance-card--${stat.id}`}
             >
-              <span className={`cg-glance-cell__icon cg-glance-cell__icon--${stat.icon}`}>
+              <span className={`cg-glance-card__icon cg-glance-card__icon--${stat.icon}`}>
                 <CgIcon name={stat.icon} />
               </span>
-              <p className="cg-glance-cell__label">{stat.label}</p>
-              <p className="cg-glance-cell__value">{stat.value}</p>
+              <div className="cg-glance-card__body">
+                <p className="cg-glance-card__label">{stat.label}</p>
+                <p className="cg-glance-card__value">{stat.value}</p>
+              </div>
             </div>
           ))}
         </div>

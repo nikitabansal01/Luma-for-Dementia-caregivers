@@ -217,40 +217,36 @@
 
   /* Synopsis sample CTA panels (banner, footer) */
   .synopsis-sample-banner {
-    @apply grid grid-cols-1 items-center gap-6 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-10 sm:p-6;
+    @apply flex flex-col gap-4 rounded-2xl border border-care-sage/80 bg-white p-4 shadow-card sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5;
   }
   .synopsis-sample-footer {
     @apply flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:gap-8 sm:p-6;
   }
-  .synopsis-sample-banner__content,
+  .synopsis-sample-banner__main {
+    @apply min-w-0 space-y-2.5;
+  }
+  .synopsis-sample-banner__pill {
+    @apply inline-flex rounded-full border border-care-mint bg-care-mint/25 px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-care-forest;
+  }
+  .synopsis-sample-banner__copy {
+    @apply space-y-1;
+  }
   .synopsis-sample-footer__content {
-    @apply min-w-0 space-y-2;
-  }
-  .synopsis-sample-banner__content {
-    @apply flex-1;
-  }
-  .synopsis-sample-footer__content {
-    @apply flex-1;
-  }
-  .synopsis-sample-banner__eyebrow {
-    @apply text-xs font-semibold uppercase tracking-wider text-care-forest;
+    @apply min-w-0 flex-1 space-y-2;
   }
   .synopsis-sample-banner__title,
   .synopsis-sample-footer__title {
-    @apply font-serif text-lg font-semibold leading-snug text-care-forest sm:text-xl;
+    @apply font-serif text-base font-semibold leading-snug text-care-forest sm:text-lg;
   }
   .synopsis-sample-banner__text,
   .synopsis-sample-footer__text {
     @apply text-sm leading-relaxed text-care-stone;
   }
-  .synopsis-sample-banner__text {
-    @apply max-w-xl;
-  }
   .synopsis-sample-footer__text {
     @apply max-w-2xl;
   }
   .synopsis-sample-banner__cta {
-    @apply inline-flex shrink-0 items-center justify-center justify-self-end rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive sm:justify-self-center;
+    @apply inline-flex shrink-0 items-center justify-center self-start rounded-lg bg-care-forest px-4 py-2 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive sm:self-center;
   }
   .synopsis-sample-footer__cta {
     @apply ml-auto inline-flex shrink-0 items-center justify-center rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive;
@@ -271,7 +267,7 @@
     @apply mt-1 text-sm text-care-stone;
   }
   .synopsis-section__sample-label {
-    @apply mb-3 inline-flex rounded-md bg-care-forest px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-white;
+    @apply mb-3 inline-flex rounded-full border border-care-mint bg-care-mint/20 px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-care-forest;
   }
   .synopsis-stat-grid {
     @apply grid gap-3 sm:grid-cols-2;
@@ -453,44 +449,25 @@
     @apply text-xs text-care-stone;
   }
   .synopsis-shell {
-    @apply overflow-hidden rounded-2xl border border-care-sage/90 bg-white shadow-card;
+    @apply rounded-2xl border border-care-sage/80 bg-white px-3 py-3 shadow-card sm:px-4;
+  }
+  .synopsis-controls {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
   }
   .synopsis-tabs {
-    @apply grid grid-cols-1 border-b border-care-sage/80 sm:grid-cols-2;
+    @apply inline-flex w-full rounded-xl border border-care-sage/70 bg-care-cream/40 p-1 sm:w-auto;
   }
   .synopsis-tab {
-    @apply relative flex items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-care-cream/30;
-  }
-  .synopsis-tab:not(:last-child) {
-    @apply sm:border-r sm:border-care-sage/60;
+    @apply flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold text-care-stone transition-colors hover:text-care-bark sm:flex-none sm:px-4;
   }
   .synopsis-tab--active {
-    @apply bg-white;
+    @apply bg-care-mint/35 text-care-forest shadow-sm ring-1 ring-care-sage/50;
   }
-  .synopsis-tab--active::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    z-index: 2;
-    height: 4px;
-    background-color: #1e5532;
+  .synopsis-controls__actions {
+    @apply flex flex-wrap items-center gap-2 sm:justify-end;
   }
-  .synopsis-tab__icon {
-    @apply mt-0.5 h-6 w-6 shrink-0 text-care-forest;
-  }
-  .synopsis-tab__text {
-    @apply min-w-0;
-  }
-  .synopsis-tab__title {
-    @apply block font-serif text-xl font-semibold leading-tight text-care-forest sm:text-2xl;
-  }
-  .synopsis-tab__subtitle {
-    @apply mt-1 block text-sm leading-snug text-care-stone;
-  }
-  .synopsis-toolbar {
-    @apply border-t border-care-sage/50 bg-care-cream/20 px-4 py-4 sm:px-5;
+  .synopsis-period-select {
+    @apply min-w-[9.5rem] border-care-sage/80 bg-white py-2 pl-3 pr-9 text-sm font-medium text-care-forest shadow-sm;
   }
   .synopsis-segmented {
     @apply flex rounded-xl border border-care-sage bg-care-cream/50 p-1;
@@ -790,65 +767,56 @@
   .cg-dashboard {
     @apply space-y-5;
   }
+  .cg-glance__header {
+    @apply mb-3 flex flex-wrap items-center gap-x-3 gap-y-1;
+  }
   .cg-glance__heading {
-    @apply mb-3 font-serif text-lg font-semibold text-care-forest;
+    @apply font-serif text-lg font-semibold text-care-forest;
   }
-  .cg-glance-strip {
-    @apply grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-care-sage/90 bg-care-sage/70 shadow-card sm:grid-cols-3 lg:grid-cols-6;
+  .cg-glance__sample-pill {
+    @apply inline-flex rounded-full border border-care-mint bg-care-mint/20 px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-care-forest;
   }
-  .cg-glance-cell {
-    @apply flex min-h-[9.5rem] flex-col items-center bg-white px-3 py-4 text-center sm:px-4;
+  .cg-glance-grid {
+    @apply grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6;
   }
-  .cg-glance-cell__icon {
-    @apply mb-2.5 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl;
+  .cg-glance-card {
+    @apply flex min-h-[5.5rem] flex-col gap-2.5 rounded-xl border border-care-sage/70 bg-white p-3 shadow-card sm:p-3.5;
   }
-  .cg-glance-cell__icon--logs {
-    @apply bg-emerald-100 text-emerald-700;
+  .cg-glance-card__icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-care-cream/80 text-care-forest;
   }
-  .cg-glance-cell__icon--behavior {
-    @apply bg-orange-100 text-orange-600;
+  .cg-glance-card__icon--logs {
+    @apply bg-care-mint/30 text-care-forest;
   }
-  .cg-glance-cell__icon--time {
-    @apply bg-violet-100 text-violet-700;
+  .cg-glance-card__icon--behavior {
+    @apply bg-care-sage/35 text-care-olive;
   }
-  .cg-glance-cell__icon--trigger {
-    @apply bg-amber-100 text-amber-700;
+  .cg-glance-card__icon--time {
+    @apply bg-care-cream text-care-bark;
   }
-  .cg-glance-cell__icon--strategy {
-    @apply bg-teal-100 text-teal-700;
+  .cg-glance-card__icon--trigger {
+    @apply bg-amber-50 text-amber-800;
   }
-  .cg-glance-cell__icon--watch {
-    @apply bg-rose-100 text-rose-700;
+  .cg-glance-card__icon--strategy {
+    @apply bg-care-mint/20 text-care-forest;
   }
-  .cg-glance-cell__icon .cg-icon {
-    @apply h-7 w-7;
+  .cg-glance-card__icon--watch {
+    @apply bg-rose-50 text-rose-800;
+  }
+  .cg-glance-card__icon .cg-icon {
+    @apply h-4 w-4;
   }
   .cg-icon {
     @apply h-5 w-5;
   }
-  .cg-glance-cell__label {
-    @apply mb-1.5 max-w-[11rem] text-[0.6875rem] font-semibold uppercase leading-tight tracking-wide;
+  .cg-glance-card__body {
+    @apply min-w-0;
   }
-  .cg-glance-cell--logs .cg-glance-cell__label {
-    @apply text-emerald-700;
+  .cg-glance-card__label {
+    @apply text-[0.6875rem] font-medium uppercase leading-tight tracking-wide text-care-stone;
   }
-  .cg-glance-cell--behavior .cg-glance-cell__label {
-    @apply text-orange-600;
-  }
-  .cg-glance-cell--time .cg-glance-cell__label {
-    @apply text-violet-700;
-  }
-  .cg-glance-cell--trigger .cg-glance-cell__label {
-    @apply text-amber-700;
-  }
-  .cg-glance-cell--strategy .cg-glance-cell__label {
-    @apply text-teal-700;
-  }
-  .cg-glance-cell--watch .cg-glance-cell__label {
-    @apply text-rose-700;
-  }
-  .cg-glance-cell__value {
-    @apply flex min-h-[2.75rem] items-start justify-center text-base font-semibold leading-snug text-care-bark;
+  .cg-glance-card__value {
+    @apply mt-0.5 text-sm font-semibold leading-snug text-care-forest;
   }
   .cg-profile-strip {
     @apply mt-0;
