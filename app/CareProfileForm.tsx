@@ -34,7 +34,7 @@ type CareProfileFormProps = {
   showDisclaimer?: boolean;
   submitLabel?: string;
   onSubmit: (values: CareProfileFormValues) => Promise<{ success: boolean; error?: string }>;
-  onSkip?: () => Promise<void>;
+  onSkip?: () => Promise<{ success: boolean; error?: string } | void>;
   skipLabel?: string;
 };
 
@@ -77,6 +77,10 @@ export default function CareProfileForm({
     setSaving(true);
     try {
       const result = await onSubmit(values);
+      if (!result) {
+        setError("Could not reach the server. If you're on a demo deploy, try again in a moment.");
+        return;
+      }
       if (result.success) {
         showSuccess("Profile saved.");
       } else {
@@ -92,8 +96,14 @@ export default function CareProfileForm({
   async function handleSkip() {
     if (!onSkip) return;
     setSkipping(true);
+    setError(null);
     try {
-      await onSkip();
+      const result = await onSkip();
+      if (result && !result.success) {
+        setError(result.error ?? "Could not continue");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not continue");
     } finally {
       setSkipping(false);
     }

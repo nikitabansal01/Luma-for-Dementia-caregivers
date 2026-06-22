@@ -384,7 +384,15 @@ export async function saveCareProfileAction(
   }
 }
 
-export async function skipOnboardingAction(): Promise<void> {
-  skipOnboarding();
-  revalidatePath("/");
+export async function skipOnboardingAction(): Promise<SaveCareProfileResult> {
+  try {
+    skipOnboarding();
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Could not skip onboarding",
+    };
+  }
 }

@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { db } from "./db";
+import { getDb } from "./db";
+import {
+  getOrCreateDefaultRecipientFromCookie,
+  writeCareProfileCookie,
+} from "./careProfileCookie";
 import { BEHAVIOR_CODES } from "./behaviorMap";
 import { isKnownBehaviorCode } from "./customBehaviors";
 import {
@@ -158,39 +162,69 @@ export function saveCareProfile(payload: unknown): CareRecipient {
   const recipient = getOrCreateDefaultRecipient();
   const now = new Date().toISOString();
 
-  db.prepare(
-    `UPDATE care_recipients SET
-      name = ?,
-      stage = ?,
-      caregiver_relationship = ?,
-      age = ?,
-      living_situation = ?,
-      onboarding_completed_at = ?,
-      onboarding_skipped_at = NULL
-    WHERE id = ?`
-  ).run(
-    parsed.name,
-    parsed.stage,
-    parsed.caregiver_relationship,
-    parsed.age,
-    parsed.living_situation ?? null,
-    now,
-    recipient.id
-  );
+  const updated: CareRecipient = {
+    ...recipient,
+    name: parsed.name,
+    stage: parsed.stage,
+    caregiver_relationship: parsed.caregiver_relationship,
+    age: parsed.age,
+    living_situation: parsed.living_situation ?? null,
+    onboarding_completed_at: now,
+    onboarding_skipped_at: null,
+  };
 
-  const row = db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(recipient.id);
-  return mapCareRecipientRow(row as Record<string, unknown>);
+  try {
+    const db = getDb();
+    db.prepare(
+      `UPDATE care_recipients SET
+        name = ?,
+        stage = ?,
+        caregiver_relationship = ?,
+        age = ?,
+        living_situation = ?,
+        onboarding_completed_at = ?,
+        onboarding_skipped_at = NULL
+      WHERE id = ?`
+    ).run(
+      parsed.name,
+      parsed.stage,
+      parsed.caregiver_relationship,
+      parsed.age,
+      parsed.living_situation ?? null,
+      now,
+      recipient.id
+    );
+
+    const row = db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(recipient.id);
+    return mapCareRecipientRow(row as Record<string, unknown>);
+  } catch (err) {
+    console.error("SQLite saveCareProfile failed, using cookie fallback:", err);
+    writeCareProfileCookie(updated);
+    return updated;
+  }
 }
 
 export function skipOnboarding(): CareRecipient {
   const recipient = getOrCreateDefaultRecipient();
   const now = new Date().toISOString();
-  db.prepare("UPDATE care_recipients SET onboarding_skipped_at = ? WHERE id = ?").run(
-    now,
-    recipient.id
-  );
-  const row = db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(recipient.id);
-  return mapCareRecipientRow(row as Record<string, unknown>);
+  const updated: CareRecipient = {
+    ...recipient,
+    onboarding_skipped_at: now,
+  };
+
+  try {
+    const db = getDb();
+    db.prepare("UPDATE care_recipients SET onboarding_skipped_at = ? WHERE id = ?").run(
+      now,
+      recipient.id
+    );
+    const row = db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(recipient.id);
+    return mapCareRecipientRow(row as Record<string, unknown>);
+  } catch (err) {
+    console.error("SQLite skipOnboarding failed, using cookie fallback:", err);
+    writeCareProfileCookie(updated);
+    return updated;
+  }
 }
 
 export type BehaviorLog = {
@@ -253,21 +287,28 @@ function rowToBehaviorLog(row: Record<string, unknown>): BehaviorLog {
 }
 
 export function getOrCreateDefaultRecipient(): CareRecipient {
-  const row = db.prepare("SELECT * FROM care_recipients LIMIT 1").get() as
-    | Record<string, unknown>
-    | undefined;
-  if (row) return mapCareRecipientRow(row);
-  const id = randomUUID();
-  const created_at = new Date().toISOString();
-  db.prepare(
-    "INSERT INTO care_recipients (id, name, stage, created_at) VALUES (?, ?, ?, ?)"
-  ).run(id, "", null, created_at);
-  return mapCareRecipientRow(
-    db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(id) as Record<string, unknown>
-  );
+  try {
+    const db = getDb();
+    const row = db.prepare("SELECT * FROM care_recipients LIMIT 1").get() as
+      | Record<string, unknown>
+      | undefined;
+    if (row) return mapCareRecipientRow(row);
+    const id = randomUUID();
+    const created_at = new Date().toISOString();
+    db.prepare(
+      "INSERT INTO care_recipients (id, name, stage, created_at) VALUES (?, ?, ?, ?)"
+    ).run(id, "", null, created_at);
+    return mapCareRecipientRow(
+      db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(id) as Record<string, unknown>
+    );
+  } catch (err) {
+    console.error("SQLite getOrCreateDefaultRecipient failed, using cookie fallback:", err);
+    return getOrCreateDefaultRecipientFromCookie();
+  }
 }
 
 export function createBehaviorLog(payload: unknown): BehaviorLog {
+  const db = getDb();
   const parsed = createBehaviorLogSchema.parse(payload);
   const id = randomUUID();
   const created_at = new Date().toISOString();
@@ -313,12 +354,14 @@ export function createBehaviorLog(payload: unknown): BehaviorLog {
 }
 
 export function getBehaviorLog(id: string): BehaviorLog | null {
+  const db = getDb();
   const row = db.prepare("SELECT * FROM behavior_logs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
   if (!row) return null;
   return rowToBehaviorLog(row);
 }
 
 export function updateLogOutcome(id: string, payload: unknown): BehaviorLog | null {
+  const db = getDb();
   const parsed = updateLogOutcomeSchema.parse(payload);
   const attemptedJson = parsed.interventions_attempted != null
     ? JSON.stringify(parsed.interventions_attempted)
@@ -333,6 +376,7 @@ export function updateLogOutcome(id: string, payload: unknown): BehaviorLog | nu
 }
 
 export function listBehaviorLogs(params: ListBehaviorLogsParams): BehaviorLog[] {
+  const db = getDb();
   const parsed = listBehaviorLogsSchema.parse(params);
   let sql = "SELECT * FROM behavior_logs WHERE 1=1";
   const args: (string | number)[] = [];
@@ -359,6 +403,7 @@ export function listBehaviorLogs(params: ListBehaviorLogsParams): BehaviorLog[] 
 }
 
 export function listBehaviorLogsByDay(params: ListBehaviorLogsByDayParams): { day: string; logs: BehaviorLog[] }[] {
+  const db = getDb();
   const parsed = listBehaviorLogsByDaySchema.parse(params);
   const rows = db
     .prepare(
@@ -385,6 +430,7 @@ function getTodayRange(): { from: string; to: string } {
 }
 
 export function getTodayLogs(): BehaviorLog[] {
+  const db = getDb();
   const { from, to } = getTodayRange();
   const rows = db
     .prepare(
@@ -423,6 +469,7 @@ const MAX_PREVIOUS_SUGGESTIONS = 5;
 
 /** For "what to try next": count of previous logs for this behavior and interventions that appeared when outcome was better. */
 export function getWhatWorkedForBehavior(behaviorType: string): WhatWorkedForBehavior {
+  const db = getDb();
   const rows = db
     .prepare(
       `SELECT outcome, interventions_attempted FROM behavior_logs WHERE behavior_type = ? ORDER BY occurred_at DESC`
@@ -461,6 +508,7 @@ export type PastAttemptsForBehavior = {
 
 /** What the caregiver has tried before for this behavior and whether it worked (better/same/worse). */
 export function getPastAttemptsForBehavior(behaviorType: string): PastAttemptsForBehavior {
+  const db = getDb();
   const rows = db
     .prepare(
       `SELECT outcome, interventions_attempted FROM behavior_logs WHERE behavior_type = ?`

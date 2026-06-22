@@ -22,15 +22,28 @@ export default function OnboardingModal({ recipient }: OnboardingModalProps) {
       return { success: false, error: validationError };
     }
     const result = await saveCareProfileAction(careProfileFormToPayload(values));
-    if (result.success) {
+    if (result?.success) {
       router.refresh();
     }
-    return result;
+    return (
+      result ?? {
+        success: false,
+        error: "Could not save your profile. Please try again.",
+      }
+    );
   }
 
   async function handleSkip() {
-    await skipOnboardingAction();
-    router.refresh();
+    const result = await skipOnboardingAction();
+    if (result?.success) {
+      router.refresh();
+    }
+    return (
+      result ?? {
+        success: false,
+        error: "Could not skip onboarding. Please try again.",
+      }
+    );
   }
 
   return (

@@ -2,6 +2,8 @@ import { getTodayLogs, getOrCreateDefaultRecipient, isOnboardingPending } from "
 import { listCustomBehaviors } from "@/src/lib/customBehaviors";
 import HomeClient from "./HomeClient";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   let todayLogs: Awaited<ReturnType<typeof getTodayLogs>> = [];
   let customBehaviors: Awaited<ReturnType<typeof listCustomBehaviors>> = [];

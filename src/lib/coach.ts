@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { getDb } from "./db";
 import defaultRulesJson from "./coach_rules.json";
 
 export type CoachRules = {
@@ -44,26 +44,36 @@ function getSuggestionsFullFromRules(rules: CoachRules, behavior: string, trigge
 }
 
 export function getCoachRules(): CoachRules {
-  const row = db.prepare("SELECT content FROM coach_rules WHERE id = 1").get() as
-    | { content: string }
-    | undefined;
-  if (row?.content?.trim()) {
-    try {
-      return JSON.parse(row.content) as CoachRules;
-    } catch {
-      return defaultRules;
+  try {
+    const db = getDb();
+    const row = db.prepare("SELECT content FROM coach_rules WHERE id = 1").get() as
+      | { content: string }
+      | undefined;
+    if (row?.content?.trim()) {
+      try {
+        return JSON.parse(row.content) as CoachRules;
+      } catch {
+        return defaultRules;
+      }
     }
+  } catch {
+    /* SQLite unavailable — use bundled defaults */
   }
   return defaultRules;
 }
 
 /** Raw JSON string for the editor (from DB or stringified default). */
 export function getCoachRulesContent(): string {
-  const row = db.prepare("SELECT content FROM coach_rules WHERE id = 1").get() as
-    | { content: string }
-    | undefined;
-  if (row?.content?.trim()) {
-    return row.content;
+  try {
+    const db = getDb();
+    const row = db.prepare("SELECT content FROM coach_rules WHERE id = 1").get() as
+      | { content: string }
+      | undefined;
+    if (row?.content?.trim()) {
+      return row.content;
+    }
+  } catch {
+    /* SQLite unavailable — use bundled defaults */
   }
   return JSON.stringify(defaultRules, null, 2);
 }
@@ -75,6 +85,7 @@ export function saveCoachRules(content: string): { ok: true } | { ok: false; err
       return { ok: false, error: "Invalid JSON: must be an object" };
     }
     const now = new Date().toISOString();
+    const db = getDb();
     db.prepare(
       `INSERT INTO coach_rules (id, content, updated_at) VALUES (1, ?, ?)
        ON CONFLICT(id) DO UPDATE SET content = excluded.content, updated_at = excluded.updated_at`

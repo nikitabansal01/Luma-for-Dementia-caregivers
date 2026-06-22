@@ -3,7 +3,7 @@
  */
 
 import { BEHAVIOR_CODES } from "./behaviorMap";
-import { db } from "./db";
+import { getDb } from "./db";
 import { keywordsToBehaviorLabel } from "./lumaEngine";
 
 export type CustomBehavior = {
@@ -21,8 +21,13 @@ export function isCustomBehaviorCode(code: string): boolean {
 export function isKnownBehaviorCode(code: string): boolean {
   if ((BEHAVIOR_CODES as readonly string[]).includes(code)) return true;
   if (!isCustomBehaviorCode(code)) return false;
-  const row = db.prepare("SELECT code FROM custom_behaviors WHERE code = ?").get(code);
-  return Boolean(row);
+  try {
+    const db = getDb();
+    const row = db.prepare("SELECT code FROM custom_behaviors WHERE code = ?").get(code);
+    return Boolean(row);
+  } catch {
+    return false;
+  }
 }
 
 function slugifyLabel(label: string): string {
@@ -34,6 +39,7 @@ function slugifyLabel(label: string): string {
 }
 
 export function createCustomBehavior(labelInput: string): CustomBehavior {
+  const db = getDb();
   const label = keywordsToBehaviorLabel(labelInput);
   const base = `${CUSTOM_PREFIX}${slugifyLabel(label) || "OTHER"}`;
   let code = base;
@@ -52,14 +58,24 @@ export function createCustomBehavior(labelInput: string): CustomBehavior {
 }
 
 export function listCustomBehaviors(): CustomBehavior[] {
-  return db
-    .prepare("SELECT code, label, created_at FROM custom_behaviors ORDER BY label ASC")
-    .all() as CustomBehavior[];
+  try {
+    const db = getDb();
+    return db
+      .prepare("SELECT code, label, created_at FROM custom_behaviors ORDER BY label ASC")
+      .all() as CustomBehavior[];
+  } catch {
+    return [];
+  }
 }
 
 export function getCustomBehaviorLabel(code: string): string | null {
-  const row = db
-    .prepare("SELECT label FROM custom_behaviors WHERE code = ?")
-    .get(code) as { label: string } | undefined;
-  return row?.label ?? null;
+  try {
+    const db = getDb();
+    const row = db
+      .prepare("SELECT label FROM custom_behaviors WHERE code = ?")
+      .get(code) as { label: string } | undefined;
+    return row?.label ?? null;
+  } catch {
+    return null;
+  }
 }
