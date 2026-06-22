@@ -1,6 +1,6 @@
 # Luma for Dementia Caregivers — Architecture
 
-**Audience:** Engineering review · Technical portfolio · AI product partners  
+**Audience:** Engineering review · Technical portfolio · AI product partners · Senior PM interview deep-dives  
 **Last updated:** Jun 2026  
 **Product owner lens:** AI PM — structure serves caregiver trust, clinical utility, and operability
 
@@ -8,15 +8,15 @@
 
 ## 1. System purpose
 
-Luma is a Next.js caregiver app with three incident-logging paths that share one schema:
+Luma is a Next.js caregiver app with three incident-logging paths that share one schema, and a dual-audience **Synopsis** that turns those logs into longitudinal value.
 
 | Path | User intent | UX shape |
 |------|-------------|----------|
 | **Luma companion** | Talk through what happened | Conversational + draft panel + editable review |
-| **Coach wizard** | Guided reflection + recommendations | Multi-step wizard |
-| **Quick log** | Fast structured entry | Single form |
+| **Coach wizard** | Guided reflection + recommendations | Multi-step wizard (“Guided check-in”) |
+| **Quick log** | Fast structured entry | Single form (built; not linked from home UI) |
 
-All paths write to `behavior_logs` → surfaced in **Today**, **History**, and **clinician synopsis PDF**.
+All paths write to `behavior_logs` → surfaced in **Today**, **History**, and **Synopsis** (caregiver + clinician views, PDF export).
 
 ### Product evolution (why three logging paths exist)
 
@@ -25,8 +25,9 @@ All paths write to `behavior_logs` → surfaced in **Today**, **History**, and *
 | **MVP 1 — Clarity log** | Quick log + coach wizard (dropdowns, chips, steps) | Full `behavior_logs` schema | Structure enables patterns and synopsis; forms are skipped in the moment |
 | **MVP 2 — Text Luma** | Single LLM chat mirroring wizard fields | Same schema | Robotic, clinical, invisible capture — one agent cannot chat and scribe |
 | **MVP 3+ — Companion + Scribe** | Voice/text companion + live draft + editable review | Same schema | Split agents; show draft; narrative gaps; explicit save; caregiver owns record |
+| **Current — Synopsis** | Dual-tab report from same logs | Caregiver dashboard + clinician summary + PDF | Structured data pays off only when translated per audience; sample mode shows value before data exists |
 
-**Architectural invariant:** The clarity log schema from MVP 1 is never replaced — Luma is an alternate **capture surface** that converges on the same tables and downstream surfaces (History, PDF synopsis).
+**Architectural invariant:** The clarity log schema from MVP 1 is never replaced — Luma is an alternate **capture surface** that converges on the same tables and downstream surfaces (History, Synopsis).
 
 ---
 
@@ -37,7 +38,7 @@ All paths write to `behavior_logs` → surfaced in **Today**, **History**, and *
 | **Framework** | Next.js 14 (App Router) |
 | **UI** | React 18, TypeScript |
 | **Styling** | Tailwind CSS 3, custom care design system (`globals.css`) |
-| **Database** | SQLite via `better-sqlite3` (file: `data/app.db`) |
+| **Database** | SQLite via `better-sqlite3` (file: `data/app.db`; `/tmp` on Vercel) |
 | **Validation** | Zod (server actions, repo payloads) |
 | **PDF export** | `@react-pdf/renderer` |
 | **Luma LLM** | OpenAI or Anthropic — Companion + Scribe parallel calls |
@@ -55,41 +56,56 @@ Single Node process: Next.js serves UI, runs server actions (LLM, TTS, DB), no s
 app/
   layout.tsx                  # Root layout, nav, fonts (DM Sans + Lora)
   page.tsx                    # Server: today's logs + custom behaviors → HomeClient
-  HomeClient.tsx              # Entry: Luma · Coach · Quick log + Today list
+  HomeClient.tsx              # Entry: Luma · Coach + Today list
   LumaCompanion.tsx           # Chat UI, draft panel, final editor, voice, save flow
   LumaFinalLogEditor.tsx      # Editable review form before commit
   useSpeechRecognition.ts     # STT hook + speakText (OpenAI or browser TTS)
-  CoachWizard.tsx             # Guided coach flow
-  QuickLogForm.tsx            # Quick log form
+  CoachWizard.tsx             # Guided check-in flow
+  QuickLogForm.tsx            # Quick log form (orphaned from home nav)
   SeveritySelector.tsx        # Shared severity cards (coach, quick log, Luma review)
   EpisodeTimingSelector.tsx   # Episode recency / time-of-day / day context
   OnboardingModal.tsx         # First-run care profile
   CareProfileForm.tsx         # Profile fields
-  WhatToTryNextCard.tsx       # Post-log recommendations
+  WhatToTryNextCard.tsx       # Post-log recommendations (quick log only)
   actions.ts                  # All server actions (logs, Luma, TTS, profile, report)
   error.tsx / global-error.tsx
   history/                    # List, detail, outcome update
-  report/                     # Synopsis UI + ReportPDF
-  coach-rules/                # Coach rules JSON editor
+  report/                     # Synopsis — dual-tab UI, helpers, PDF export
+    page.tsx                  # Tab shell, period selector, sample mode, auto-fetch
+    CaregiverPatternsView.tsx # Actionable caregiver dashboard
+    ClinicianSummaryView.tsx  # Chart/data-focused observational summary
+    CaregiverSynopsisVisuals.tsx
+    SynopsisCharts.tsx        # Donut, bar charts (clinician tab)
+    SynopsisExportActions.tsx # Print + PDF (clinician tab, real data only)
+    SynopsisPdfExport.tsx
+    ReportPDF.tsx             # @react-pdf/renderer document
+    synopsisConfig.ts         # Tabs, periods, disclaimers
+    synopsisHelpers.ts        # Pattern confidence, glance stats, trigger/strategy builders
+    sampleSynopsis.ts         # Mock report when totalIncidents === 0
+    SynopsisTabIcon.tsx
+  coach-rules/                # Coach rules JSON editor (no nav link)
+  profile/                    # Care profile
 
 src/lib/
   db.ts                       # SQLite init, schema, additive migrations
-  repo.ts                     # CRUD, list, report queries
+  repo.ts                     # CRUD, list, generateReport(), synopsis queries
   customBehaviors.ts          # CUSTOM_* behavior codes
   coach.ts / coach_rules.json # Recommendation rules
   coachFlowCatalog.ts         # Triggers, strategies, outcomes (shared catalogs)
   coachFlowRecommendations.ts # Post-log “what to try next”
+  lumaReflectSuggestions.ts   # Mid-conversation reflect cards (same rule pool as coach)
   behaviorMap.ts              # Behavior codes ↔ labels
   episodeTiming.ts            # Episode timing types + inference helpers
   severityCatalog.ts          # Severity options
   logUtils.ts                 # Client-safe display helpers
-  synopsisBuilder.ts          # Clinician synopsis assembly
+  synopsisBuilder.ts          # Clinician synopsis assembly (legacy PDF sections)
   lumaEngine.ts               # LumaDraft, heuristics, finalize, normalizeLumaDraft
   lumaConversationDesign.ts   # Narrative gaps, draft hints, save confirmation
   lumaLlm.ts                  # Companion + Scribe LLM (server-only)
   lumaMessageFormat.ts        # Chat block parsing (paragraphs / bullets)
   lumaTts.ts                  # OpenAI TTS voices (server-only)
   lumaSessionStorage.ts       # localStorage auto-save / restore / clear
+  careProfileCookie.ts        # Profile fallback when SQLite unavailable
 ```
 
 ---
@@ -141,11 +157,15 @@ story → timing → intensity → context → response → review
 | Review | `LumaFinalLogEditor` replaces read-only panel | Edit any field directly |
 | Commit | SQLite `behavior_logs` | **Save to log** or explicit chat “yes” only |
 
-`submitLumaLogAction` → `submitCoachLog` → same payload shape as coach flow (behavior, severity, episode fields, triggers, strategies, outcome, notes, recommendations).
+`submitLumaLogAction` → same payload shape as coach flow (behavior, severity, episode fields, triggers, strategies, outcome, notes, recommendations).
 
 **Not auto-written:** Scribe `ready_to_save` alone does not persist; prevents silent incorrect clinical rows.
 
-### 4.4 Session persistence (`lumaSessionStorage.ts`)
+### 4.4 Mid-conversation recommendations
+
+`lumaReflectSuggestions.ts` surfaces rule-based “reflect” cards during Luma chat when triggers/strategies are known — same recommendation pool as coach wizard, without breaking conversational flow.
+
+### 4.5 Session persistence (`lumaSessionStorage.ts`)
 
 ```typescript
 luma-session-v1 → { draft, messages, step, keepTalkingDismissed, savedAt }
@@ -155,13 +175,13 @@ luma-session-v1 → { draft, messages, step, keepTalkingDismissed, savedAt }
 - **Save:** debounced on draft/messages/step changes
 - **Clear:** on successful `submitLumaLogAction`
 
-### 4.5 Extraction safeguards
+### 4.6 Extraction safeguards
 
 - **Time vs trigger:** Time-category chips (Morning, Sundowning, …) excluded from trigger hypotheses; sleep → FATIGUE heuristic
 - **Custom behaviors:** Unknown behavior → propose label → `createCustomBehaviorAction` → `CUSTOM_*` code
 - **Inference flags:** `triggers_answered`, `strategies_answered`, `outcome_answered` inferred when data present
 
-### 4.6 Voice pipeline
+### 4.7 Voice pipeline
 
 ```
 STT: useSpeechRecognition → continuous, interim preview, Done to submit
@@ -171,7 +191,67 @@ Voice preference: localStorage (shimmer / nova / coral / alloy)
 
 ---
 
-## 5. Core app data flow
+## 5. Synopsis — dual-audience reporting
+
+**Route:** `/report` · **Nav label:** Synopsis
+
+### 5.1 Tab model (`synopsisConfig.ts`)
+
+| Tab | Default period | Audience | UX goal |
+|-----|----------------|----------|---------|
+| **For caregivers** | 30 days | Family caregiver | Actionable patterns — what to reduce, what helped, what to try, appointment questions |
+| **For clinicians** | 180 days | Care team / neurologist visit prep | Observational summary — charts, coverage metrics, discussion questions; explicitly not a clinical assessment |
+
+Shared period options: 30 / 90 / 180 days. Auto-fetch on tab or period change via server actions.
+
+### 5.2 Sample mode (zero-data activation)
+
+When `generateReport()` returns `totalIncidents === 0`:
+
+- Inject mock data from `sampleSynopsis.ts`
+- Show labeled **Sample report** banners + CTAs to start logging
+- Mock profile lines for realistic preview
+- PDF export disabled until real data exists
+
+### 5.3 Caregiver dashboard (`CaregiverPatternsView.tsx` + `synopsisHelpers.ts`)
+
+| Section | Builder / logic |
+|---------|-----------------|
+| This period at a glance | `buildCaregiverGlanceStats` |
+| Top recurring behaviors | `buildCaregiverBehaviorRows` + pattern confidence badges |
+| Triggers you may be able to reduce | `buildReducibleTriggers` |
+| Strategies that seemed to help | `buildHelpfulStrategies` |
+| Strategies to rethink | `buildStrategiesToRethink` |
+| Try this next month | `buildTryNextMonthTips` |
+| Questions for appointment | `buildCaregiverAppointmentQuestions` |
+
+Pattern confidence: **Strong pattern** (5+ logs or 3+ over multi-week) · **Early signal** (2–4) · **Not enough data** (1).
+
+### 5.4 Clinician summary (`ClinicianSummaryView.tsx`)
+
+- Observational care log summary (non-diagnosis framing)
+- Data coverage tiles, trend, behavior frequency/severity charts
+- Time-of-day, trigger category, strategy outcome visualizations
+- Discussion question cards
+- **Print** + **Export PDF** (`ReportPDF.tsx`) when real data present
+
+### 5.5 Data pipeline
+
+```
+behavior_logs (SQLite)
+        │
+        ▼
+repo.generateReport(days)
+        │
+        ├── CaregiverPatternsView (actionable dashboard)
+        └── ClinicianSummaryView (charts + PDF)
+```
+
+User-facing terminology: **care observations** (not “moments”). Disclaimer on all synopsis surfaces: *Based on caregiver-entered logs. Not medical advice.*
+
+---
+
+## 6. Core app data flow
 
 ### Reads
 Server components call `repo` / `customBehaviors` → pass props to client. No REST layer.
@@ -184,7 +264,7 @@ Browser code must **not** import `repo`, `db`, `lumaLlm`, `lumaTts`. Use server 
 
 ---
 
-## 6. Database
+## 7. Database
 
 **File:** `data/app.db` (git-ignored, runtime-created)
 
@@ -203,7 +283,7 @@ Browser code must **not** import `repo`, `db`, `lumaLlm`, `lumaTts`. Use server 
 
 ---
 
-## 7. Shared UI components
+## 8. Shared UI components
 
 | Component | Used by |
 |-----------|---------|
@@ -215,7 +295,7 @@ Severity cards use label click handlers + visible hit targets (no `pointer-event
 
 ---
 
-## 8. Environment variables
+## 9. Environment variables
 
 Server-only — never `NEXT_PUBLIC_*` for keys.
 
@@ -234,7 +314,7 @@ Restart dev server after changes.
 
 ---
 
-## 9. Build & run
+## 10. Build & run
 
 | Command | Purpose |
 |---------|---------|
@@ -247,7 +327,7 @@ Restart dev server after changes.
 
 ---
 
-## 10. Deployment (Vercel)
+## 11. Deployment (Vercel)
 
 **Fits:** App Router + server actions; API keys in Vercel env.
 
@@ -259,13 +339,14 @@ Restart dev server after changes.
 | No auth / multi-tenant | Single default recipient | Auth + row-level isolation |
 | No BAA / audit trail | Not enterprise HIPAA-ready | Vendor BAAs, logging, encryption |
 | LLM latency (~2 parallel calls/turn) | Slow on poor network | Timeouts, optimistic UI, scribe optional |
+| No scribe eval pipeline | Unknown extraction quality at scale | Golden transcripts + edit-rate instrumentation |
 
 **Native module:** If build fails on `better-sqlite3`, add to `next.config.js`:
 `experimental.serverComponentsExternalPackages: ["better-sqlite3"]`
 
 ---
 
-## 11. Observability & failure modes
+## 12. Observability & failure modes
 
 | Failure | Behavior |
 |---------|----------|
@@ -274,19 +355,32 @@ Restart dev server after changes.
 | Corrupt localStorage session | `normalizeLumaDraft` on load; filter invalid messages |
 | TTS unavailable | Browser TTS with “(browser)” in voice labels |
 | Scribe mis-extraction | User edits in final log before save |
+| Zero logs for synopsis | Sample mode with mock data + start-logging CTAs |
 
 ---
 
-## 12. Testing status
+## 13. Testing status
 
 No automated test suite yet. Recommended next:
 
 - Golden-file tests for `normalizeLumaDraft`, `primaryGap`, heuristic extraction
-- Scribe eval: transcript → expected draft JSON
-- E2E: Luma conversation → edit review → save → History row
+- Scribe eval: transcript → expected draft JSON; track edit distance at save
+- Synopsis builder tests: known log set → expected pattern confidence + glance stats
+- E2E: Luma conversation → edit review → save → History row → Synopsis update
 
 ---
 
-## 13. One-line summary
+## 14. Built but not in main UX
 
-Next.js 14 caregiver app with coach, quick log, and **Luma** — a Companion/Scribe AI layer that extracts structured incidents from natural speech into SQLite, with human-in-the-loop review, local draft resilience, and shared catalogs for history and clinician synopsis export.
+| Feature | Status |
+|---------|--------|
+| Quick log form | Implemented; not linked from home (Luma + Coach only) |
+| Coach rules editor | `/coach-rules`; no nav link |
+| Recent log previews in caregiver synopsis | Data fetched; UI not rendered |
+| Caregiver tab PDF export | Clinician tab only |
+
+---
+
+## 15. One-line summary
+
+Next.js 14 caregiver app with coach, Luma (Companion/Scribe AI + voice + human-in-the-loop review), and dual-audience **Synopsis** — turning shared `behavior_logs` into actionable caregiver dashboards and clinician observational summaries, with sample mode for zero-data activation.
