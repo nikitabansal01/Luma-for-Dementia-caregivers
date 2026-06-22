@@ -18,6 +18,16 @@ Luma is a Next.js caregiver app with three incident-logging paths that share one
 
 All paths write to `behavior_logs` → surfaced in **Today**, **History**, and **clinician synopsis PDF**.
 
+### Product evolution (why three logging paths exist)
+
+| Phase | Capture UX | Structured output | Lesson |
+|-------|------------|-------------------|--------|
+| **MVP 1 — Clarity log** | Quick log + coach wizard (dropdowns, chips, steps) | Full `behavior_logs` schema | Structure enables patterns and synopsis; forms are skipped in the moment |
+| **MVP 2 — Text Luma** | Single LLM chat mirroring wizard fields | Same schema | Robotic, clinical, invisible capture — one agent cannot chat and scribe |
+| **MVP 3+ — Companion + Scribe** | Voice/text companion + live draft + editable review | Same schema | Split agents; show draft; narrative gaps; explicit save; caregiver owns record |
+
+**Architectural invariant:** The clarity log schema from MVP 1 is never replaced — Luma is an alternate **capture surface** that converges on the same tables and downstream surfaces (History, PDF synopsis).
+
 ---
 
 ## 2. Stack overview

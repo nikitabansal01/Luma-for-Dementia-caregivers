@@ -9,9 +9,18 @@
 
 ## Executive summary
 
-Dementia caregivers often skip structured logging because forms feel clinical and exhausting in the moment. **Luma** is a voice-and-text companion that lets caregivers describe an incident naturally while the product silently builds the same structured record used by coach and quick-log flows — for history, patterns, and clinician synopsis export.
+Dementia caregivers need **clarity** after hard moments — what happened, what might have contributed, and what actually helped — so patterns emerge over time and neurologist visits are productive. We did not jump straight to AI chat. We **earned** conversational Luma by shipping and learning through three deliberate product generations, all writing to the same structured care log.
 
-This case study shows how I shipped an AI-native feature end-to-end: problem framing, conversation design, model architecture, trust UX, failure modes, and iteration from a broken MVP to a demo-ready product — without pretending the app is a regulated medical device.
+| Generation | What we shipped | What we learned |
+|------------|-----------------|-----------------|
+| **MVP 1 — Clarity log** | Rule-based UI: dropdowns, chips, coach wizard, quick log | Structured data works; forms feel clinical and get skipped in the moment |
+| **MVP 2 — Conversational text** | Single LLM chat that mirrored the wizard field-by-field | Faster to start talking, but felt **robotic and survey-like** — the model sounded like the form, not a person |
+| **MVP 3 — Companion + Scribe** | Two agents: empathetic companion (voice) + silent scribe (structure) | Warmth and extraction are different jobs; one prompt cannot do both well |
+| **Current — Balanced trust** | Live draft panel, editable final log, voice, explicit save | Caregivers need to **see** capture, **edit** mistakes, and **own** the record that feeds history and clinician synopsis |
+
+**North star:** Help caregivers reduce avoidable behavioral episodes by logging what happened, what contributed, and what worked — with an experience that feels like talking to someone who listens, not filling out paperwork for a neurologist.
+
+This case study documents those product decisions, not just the final architecture.
 
 ---
 
@@ -23,7 +32,100 @@ This case study shows how I shipped an AI-native feature end-to-end: problem fra
 | **Care team / clinician** | Needs structured, comparable incident data over time | Same `behavior_logs` schema regardless of entry path |
 | **Product / eng** | One LLM asked to chat *and* extract JSON produces stiff UX and missed fields | Split **Companion** (voice) and **Scribe** (structure) |
 
-**Opportunity:** Use generative AI where it adds humanity (listening, reflecting) and classical product patterns where they add reliability (editable review, explicit save, rule-based fallback).
+**Opportunity:** Use generative AI where it adds humanity (listening, reflecting) and keep the **clarity log** schema and UI patterns where they add control (review, edit, synopsis export).
+
+---
+
+## Product evolution — how we got to Luma
+
+This is the core product story: we did not replace the clarity log. We **layered** conversation on top of it, then corrected course when AI made the experience worse, not better.
+
+### MVP 1 — The clarity log (structured, rule-based UI)
+
+**Hypothesis:** Caregivers need a reliable way to capture incidents with enough structure to spot patterns and prepare for neurology visits.
+
+**What we built:**
+- **Quick log** — behavior dropdown, episode timing, severity cards, trigger chips
+- **Coach wizard** — step-by-step flow with recommendations (“what to try next”)
+- Shared catalogs: behavior codes, trigger hypotheses, strategies tried, outcomes
+- **History** and **clinician synopsis PDF** downstream
+
+**Core value delivered:** A consistent `behavior_logs` schema — the “source of truth” for what happened, when, how intense, what might have contributed, what was tried, and whether it helped.
+
+**Limitation discovered:** After an agitation or wandering episode, a multi-field form feels like homework. Caregivers want to *talk*, not translate their experience into dropdowns in real time. But we **kept** this layer — it became the review surface and the fallback, not something to throw away.
+
+---
+
+### MVP 2 — Conversational logging (text-first Luma)
+
+**Hypothesis:** Natural language lowers the barrier — describe the incident in your own words and let the system fill the log.
+
+**What we built:**
+- Chat-based Luma on the home screen
+- Single LLM call tasked with **both** replying empathetically **and** extracting structured fields
+- Conversation that **mirrored the coach wizard** — recency, then time of day, then severity, then triggers…
+
+**What went wrong (critical learning):**
+- Luma sounded **robotic and clinical** — essentially a spoken form
+- Users heard schema language (“episode recency,” severity scales) instead of human conversation
+- One model optimizing for JSON extraction produced stiff, survey-like replies
+- Caregivers could not **see** what was being captured — extraction was invisible
+- The companion asked questions **about the log**, not about their experience — breaking trust immediately
+
+**PM decision:** Text-only conversation was the right direction; **single-agent, wizard-mirroring** was the wrong implementation. We did not abandon structured logging — we separated **how it feels** from **what gets stored**.
+
+---
+
+### MVP 3 — Companion + Scribe (two agents, one draft)
+
+**Hypothesis:** Split emotional labor from data extraction so each can be optimized independently.
+
+**What we built:**
+
+| Agent | Job | User sees |
+|-------|-----|-----------|
+| **Companion** (stronger model) | Listen, reflect, one gentle follow-up | Warm plain-text chat only — no JSON, no field names |
+| **Scribe** (lighter model) | Merge utterance → `draft_updates` | Nothing spoken — silent parallel extraction |
+| **Heuristics** (rules) | Always-on backfill + offline fallback | Same draft, no API required |
+
+**Architecture insight:** Empathy and JSON compliance compete in one context window. Parallel calls let the companion be short and human while the scribe chases completeness.
+
+**Still not enough:** Even with two agents, users reported:
+- “What did you get?” — invisible capture
+- Companion still occasionally recapped the log in chat
+- Questions felt anchored to **missing fields**, not **their story**
+- Voice felt robotic (browser TTS); mic cut off mid-sentence
+
+---
+
+### Current — Balanced companion + clarity log (trust loop)
+
+**Hypothesis:** The product must simultaneously (1) feel emotionally safe and (2) produce a defensible record for the caregiver and neurologist.
+
+**What we added on top of MVP 3:**
+
+1. **Live draft panel** — “Your draft log” updates on screen; companion points to it instead of reading fields aloud  
+2. **Narrative gaps, not wizard steps** — story → timing → intensity → context → response → review (`lumaConversationDesign.ts`)  
+3. **Editable final log** — full form at review; user fixes scribe errors before commit  
+4. **Explicit save** — nothing writes to `behavior_logs` until the caregiver confirms  
+5. **Local auto-save** — session survives refresh; distinct from clinical record integrity  
+6. **Voice UX** — continuous mic + manual Done; OpenAI TTS personas  
+7. **Taxonomy fixes** — e.g. “morning” as time-of-day, not a trigger; sleep → fatigue  
+
+**The balance we were optimizing for:**
+
+```
+         Emotional companion                Structured clarity log
+    (listen, pace, don’t retraumatize)    (history, patterns, synopsis)
+                    │                              │
+                    └──────── draft + review ──────┘
+                              │
+                    Caregiver stays in control
+```
+
+**Why this matters for outcomes:** Structured logs over time help caregivers and clinicians see which behaviors may be **avoidable**, which **triggers** recur, and which **strategies** actually reduced intensity — not just what happened once. Luma’s job is to lower the cost of that clarity, not replace caregiver judgment.
+
+**What stayed from MVP 1:** Quick log and coach wizard remain — not every moment needs conversation. All paths share one schema.
 
 ---
 
@@ -70,43 +172,57 @@ Caregiver speaks/types
 
 ---
 
-## Key product decisions
+## Key product decisions (within the evolution)
 
-### 1. Companion + Scribe (not one prompt)
+These decisions make sense only in context of MVP 1 → 2 → 3 → current. Each corrects a specific failure mode.
 
-**Decision:** Two parallel model calls — stronger model for reply, lighter model for extraction.  
+### 1. Keep the clarity log schema; change the capture experience
+
+**Decision:** Never fork data models. Luma, coach, and quick log all write `behavior_logs`.  
+**Why:** MVP 1 proved structured fields power History and synopsis. MVP 2 failed on *capture UX*, not on schema.  
+**PM skill:** Separate **interface generation** from **core value** — don’t throw away what works for clinicians.
+
+### 2. Companion + Scribe (not one prompt)
+
+**Decision:** Two parallel model calls after MVP 2’s single-agent failure.  
 **Why:** Empathy and JSON compliance compete in a single context window. Splitting improved warmth *and* capture quality.  
-**PM skill:** Matching model capability to job shape, not defaulting to one “smart” call.
+**PM skill:** Match model capability to job shape; know when to split agents.
 
-### 2. Show the draft, don’t read it aloud
+### 3. Show the draft, don’t read it aloud
 
-**Decision:** Collapsible **Your draft log** panel; LLM points to it instead of reciting fields.  
-**Why:** Caregivers asked “what did you get?” — readback felt like a survey. Panel builds trust without polluting chat.  
+**Decision:** Collapsible **Your draft log** panel; companion instructed to point to it.  
+**Why:** MVP 2’s invisible extraction caused “what did you get?” and duplicate survey readback in chat.  
 **PM skill:** Transparency without turning transparency into more cognitive load.
 
-### 3. Editable final log + explicit save
+### 4. Ask about the story, not the log
 
-**Decision:** At review, show **LumaFinalLogEditor** (full form); persist to DB only on **Save to log** or explicit chat “yes.”  
-**Why:** AI will mislabel triggers, conflate time-of-day with contributors, or miss nuance. Caregivers must own the record.  
-**PM skill:** Human-in-the-loop for health-adjacent data; never equate model confidence with user consent.
+**Decision:** Thematic gaps (story → timing → … → review), not wizard field order; prompts forbid schema jargon.  
+**Why:** Users rejected questions that existed only because a field was empty — it felt like the model cared about the form, not them.  
+**PM skill:** Conversation design is product design; gap logic lives in code (`primaryGap`), not in the LLM’s improvisation.
 
-### 4. Local session auto-save (not DB auto-save)
+### 5. Editable final log + explicit save
 
-**Decision:** Debounced + interval save to `localStorage` (`luma-session-v1`); clear on successful commit.  
-**Why:** Prevents loss on refresh/tab crash without creating duplicate or premature clinical entries.  
-**PM skill:** Separating *draft resilience* from *record integrity*.
+**Decision:** **LumaFinalLogEditor** at review; DB write only on Save or explicit “yes.”  
+**Why:** Scribe will mislabel triggers and conflate time with contributors. Caregivers must own the record that neurologists see.  
+**PM skill:** Human-in-the-loop for health-adjacent data; model confidence ≠ user consent.
 
-### 5. Rule-based fallback that still respects humans
+### 6. Local session auto-save (not DB auto-save)
 
-**Decision:** Heuristics run alongside Scribe; full offline path when no API key. Greeting detection prevents “Would ‘Hi’ work as a behavior?”  
-**Why:** Demos, outages, and cost caps shouldn’t produce a hostile UX.  
-**PM skill:** AI product = primary path + credible backup, not AI-or-nothing.
+**Decision:** Debounced + interval save to `localStorage`; clear on successful commit.  
+**Why:** Prevents loss on refresh without creating duplicate or premature clinical entries.  
+**PM skill:** Draft resilience ≠ record integrity.
 
-### 6. Voice UX as first-class
+### 7. Rule-based fallback that still respects humans
 
-**Decision:** Continuous mic + **Done** button; OpenAI TTS with selectable voice; browser fallback labeled honestly.  
-**Why:** Caregivers often can’t type mid-crisis; robotic TTS undermines “companion” positioning.  
-**PM skill:** Multimodal design for real-world constraints, not feature checklist parity.
+**Decision:** Heuristics alongside Scribe; greeting guard; offline path without API key.  
+**Why:** MVP 2 also showed that bad fallback (“Would ‘Hi’ work as a behavior?”) destroys trust as fast as bad LLM tone.  
+**PM skill:** AI product = primary path + credible backup.
+
+### 8. Voice UX as first-class
+
+**Decision:** Continuous mic + **Done**; OpenAI TTS with selectable voice.  
+**Why:** Caregivers often can’t type mid-crisis; robotic TTS undermined companion positioning after MVP 2’s clinical tone problem.  
+**PM skill:** Multimodal design for real-world constraints.
 
 ---
 
@@ -197,7 +313,7 @@ Review: Caregiver edits, then saves.
 
 ## Copy-ready portfolio blurb
 
-> As AI PM, I built **Luma** — a conversational logging companion for dementia caregivers. I decomposed the AI layer into **Companion** (empathetic dialogue) and **Scribe** (silent structured extraction), designed narrative-first conversation gaps instead of form mirroring, and closed the trust loop with a live draft panel, **editable final log**, and explicit save. I shipped voice UX (continuous mic + OpenAI TTS), local session resilience, and heuristic fallbacks for demo reliability — all writing into the same care log used for history and clinician synopsis. Iterated from P0 stability and trust failures through qualitative feedback on robotic tone, invisible capture, and misclassified triggers.
+> I evolved **Luma** through three product generations: a rule-based **clarity log** (dropdowns, coach wizard, synopsis-ready schema) → conversational text (fast to ship, but robotic and clinical) → **Companion + Scribe** agents with a trust loop (live draft panel, narrative gaps instead of wizard mirroring, editable final log, explicit save, voice). The north star: help dementia caregivers capture what happened and what worked — so they regain control over avoidable behaviors and arrive at neurology visits with structured history — without the product feeling like paperwork.
 
 ---
 
