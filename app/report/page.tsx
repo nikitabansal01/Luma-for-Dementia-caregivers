@@ -182,10 +182,12 @@ export default function ReportPage() {
         >
           {isSample && (
             <div className="synopsis-sample-badge no-print" role="status" aria-live="polite">
-              <p className="synopsis-sample-badge__text">
+              <div className="synopsis-sample-badge__content">
                 <span className="synopsis-sample-badge__label">{SYNOPSIS_SAMPLE_LABEL}</span>
-                Example data only — log care observations to see your own patterns
-              </p>
+                <p className="synopsis-sample-badge__text">
+                  Example data only — log care observations to see your own patterns
+                </p>
+              </div>
               <Link href="/" className="synopsis-sample-badge__cta">
                 Start logging →
               </Link>
@@ -207,6 +209,20 @@ export default function ReportPage() {
               profile={profile}
               isSample={isSample}
             />
+          )}
+
+          {isSample && (
+            <section className="synopsis-sample-footer no-print">
+              <div className="synopsis-sample-footer__content">
+                <h2 className="synopsis-sample-footer__title">Ready to see your own insights?</h2>
+                <p className="synopsis-sample-footer__text">
+                  Log care observations on the home screen — this synopsis fills in from what you note.
+                </p>
+              </div>
+              <Link href="/" className="synopsis-sample-footer__cta">
+                Start logging today →
+              </Link>
+            </section>
           )}
         </div>
       )}

@@ -215,54 +215,47 @@
     @apply inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-care-sage bg-white/70 px-4 py-3 text-sm font-semibold text-care-forest transition-colors hover:border-care-olive/50 hover:bg-care-mint/20 sm:w-auto;
   }
 
-  /* Synopsis polish */
-  .synopsis-sample-banner {
-    @apply flex flex-col gap-4 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6;
+  /* Synopsis sample CTA panels (banner, badge, footer) */
+  .synopsis-sample-banner,
+  .synopsis-sample-footer {
+    @apply flex flex-col gap-5 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:flex-row sm:items-start sm:justify-between sm:gap-8 sm:p-6;
   }
-  .synopsis-sample-banner__content {
-    @apply min-w-0 flex-1;
+  .synopsis-sample-banner__content,
+  .synopsis-sample-footer__content {
+    @apply min-w-0 flex-1 space-y-2;
   }
   .synopsis-sample-banner__eyebrow {
     @apply text-xs font-semibold uppercase tracking-wider text-care-forest;
   }
-  .synopsis-sample-banner__title {
-    @apply mt-1 font-serif text-lg font-semibold text-care-forest sm:text-xl;
+  .synopsis-sample-banner__title,
+  .synopsis-sample-footer__title {
+    @apply font-serif text-lg font-semibold leading-snug text-care-forest sm:text-xl;
   }
-  .synopsis-sample-banner__text {
-    @apply mt-2 max-w-2xl text-sm leading-relaxed text-care-stone;
+  .synopsis-sample-banner__text,
+  .synopsis-sample-footer__text {
+    @apply max-w-2xl text-sm leading-relaxed text-care-stone;
   }
-  .synopsis-sample-banner__cta {
-    @apply shrink-0 rounded-lg bg-care-forest px-4 py-2.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-care-olive;
+  .synopsis-sample-banner__cta,
+  .synopsis-sample-footer__cta {
+    @apply inline-flex w-full shrink-0 items-center justify-center self-start rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive sm:w-auto;
   }
   .synopsis-report-wrap--sample {
     @apply space-y-4;
   }
   .synopsis-sample-badge {
-    @apply sticky top-3 z-10 flex flex-col gap-2 rounded-xl border border-care-mint bg-care-mint/95 px-4 py-3 shadow-card backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between;
+    @apply sticky top-3 z-10 flex flex-col gap-3 rounded-xl border border-care-mint bg-care-mint/95 px-4 py-3.5 shadow-card backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6;
   }
-  .synopsis-sample-badge__text {
-    @apply text-sm leading-relaxed text-care-bark;
+  .synopsis-sample-badge__content {
+    @apply min-w-0 flex-1 space-y-2 sm:space-y-0;
   }
   .synopsis-sample-badge__label {
-    @apply mr-2 inline-flex rounded-md bg-care-forest px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-white;
+    @apply inline-flex w-fit rounded-md bg-care-forest px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-white;
+  }
+  .synopsis-sample-badge__text {
+    @apply text-sm leading-relaxed text-care-bark sm:mt-1.5;
   }
   .synopsis-sample-badge__cta {
-    @apply shrink-0 text-sm font-semibold text-care-forest no-underline transition-colors hover:text-care-olive;
-  }
-  .synopsis-sample-footer {
-    @apply flex flex-col gap-4 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-6;
-  }
-  .synopsis-sample-footer__content {
-    @apply min-w-0 flex-1;
-  }
-  .synopsis-sample-footer__title {
-    @apply font-serif text-lg font-semibold text-care-forest sm:text-xl;
-  }
-  .synopsis-sample-footer__text {
-    @apply mt-2 max-w-2xl text-sm leading-relaxed text-care-stone;
-  }
-  .synopsis-sample-footer__cta {
-    @apply shrink-0 rounded-lg bg-care-forest px-4 py-2.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-care-olive;
+    @apply inline-flex w-full shrink-0 items-center justify-center self-start rounded-lg border border-care-forest/15 bg-white px-4 py-2 text-sm font-semibold leading-normal text-care-forest no-underline transition-colors hover:border-care-forest/30 hover:bg-care-cream/80 sm:w-auto;
   }
   .synopsis-report-header {
     @apply border-b border-care-sage/80 pb-4;

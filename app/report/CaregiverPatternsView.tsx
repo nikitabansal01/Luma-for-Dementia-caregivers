@@ -238,20 +238,6 @@ export default function CaregiverPatternsView({
           </ul>
         </DashboardCard>
       </div>
-
-      {isSample && (
-        <section className="synopsis-sample-footer no-print">
-          <div className="synopsis-sample-footer__content">
-            <h2 className="synopsis-sample-footer__title">Ready to see your own insights?</h2>
-            <p className="synopsis-sample-footer__text">
-              Log care observations on the home screen — this dashboard fills in from what you note.
-            </p>
-          </div>
-          <Link href="/" className="synopsis-sample-footer__cta">
-            Start logging today →
-          </Link>
-        </section>
-      )}
     </div>
   );
 }
