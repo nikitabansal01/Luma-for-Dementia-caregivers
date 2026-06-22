@@ -217,19 +217,16 @@
 
   /* Synopsis sample CTA panels (banner, footer) */
   .synopsis-sample-banner {
-    @apply flex flex-col gap-4 rounded-2xl border border-care-sage/80 bg-white p-4 shadow-card sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5;
+    @apply grid grid-cols-1 gap-5 rounded-2xl border border-care-sage/80 bg-white px-5 py-5 shadow-card sm:min-h-[9.5rem] sm:grid-cols-[minmax(0,62fr)_minmax(0,38fr)] sm:items-center sm:gap-x-10 sm:px-6 sm:py-5;
   }
   .synopsis-sample-footer {
     @apply flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:gap-8 sm:p-6;
   }
-  .synopsis-sample-banner__main {
-    @apply min-w-0 space-y-2.5;
+  .synopsis-sample-banner__content {
+    @apply min-w-0 space-y-2;
   }
   .synopsis-sample-banner__pill {
     @apply inline-flex rounded-full border border-care-mint bg-care-mint/25 px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-care-forest;
-  }
-  .synopsis-sample-banner__copy {
-    @apply space-y-1;
   }
   .synopsis-sample-footer__content {
     @apply min-w-0 flex-1 space-y-2;
@@ -240,13 +237,16 @@
   }
   .synopsis-sample-banner__text,
   .synopsis-sample-footer__text {
-    @apply text-sm leading-relaxed text-care-stone;
+    @apply max-w-prose text-sm leading-relaxed text-care-stone;
   }
   .synopsis-sample-footer__text {
     @apply max-w-2xl;
   }
+  .synopsis-sample-banner__cta-wrap {
+    @apply flex shrink-0 items-center sm:justify-center sm:border-l sm:border-care-sage/50 sm:pl-8;
+  }
   .synopsis-sample-banner__cta {
-    @apply inline-flex shrink-0 items-center justify-center self-start rounded-lg bg-care-forest px-4 py-2 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive sm:self-center;
+    @apply inline-flex w-full shrink-0 items-center justify-center rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline shadow-sm transition-colors hover:bg-care-olive sm:w-auto;
   }
   .synopsis-sample-footer__cta {
     @apply ml-auto inline-flex shrink-0 items-center justify-center rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive;

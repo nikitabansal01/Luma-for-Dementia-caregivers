@@ -150,19 +150,19 @@ export default function ReportPage() {
 
       {isSample && (
         <div className="synopsis-sample-banner no-print">
-          <div className="synopsis-sample-banner__main">
+          <div className="synopsis-sample-banner__content">
             <span className="synopsis-sample-banner__pill">{SYNOPSIS_SAMPLE_LABEL}</span>
-            <div className="synopsis-sample-banner__copy">
-              <h2 className="synopsis-sample-banner__title">This is what your synopsis could look like</h2>
-              <p className="synopsis-sample-banner__text">
-                After a few weeks of logging, everyday notes become patterns, trigger insights, and
-                appointment-ready questions.
-              </p>
-            </div>
+            <h2 className="synopsis-sample-banner__title">Preview your first synopsis</h2>
+            <p className="synopsis-sample-banner__text">
+              After a few logs, Luma turns care moments into patterns, trigger insights, and questions
+              for your next appointment.
+            </p>
           </div>
-          <Link href="/" className="synopsis-sample-banner__cta">
-            Start logging today →
-          </Link>
+          <div className="synopsis-sample-banner__cta-wrap">
+            <Link href="/" className="synopsis-sample-banner__cta">
+              Start logging
+            </Link>
+          </div>
         </div>
       )}
 
