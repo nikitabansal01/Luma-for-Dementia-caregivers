@@ -42,7 +42,7 @@ export default function WhatToTryNextCard({
         <div>
           <h2 className="card-heading">What to try for {behaviorLabel}</h2>
           <p className="mt-1 text-sm text-care-stone">
-            Based on your {pastAttempts.totalLogs} past log{pastAttempts.totalLogs !== 1 ? "s" : ""} for this behavior.
+            Based on your {pastAttempts.totalLogs} past note{pastAttempts.totalLogs !== 1 ? "s" : ""} for this behavior.
           </p>
         </div>
         <button type="button" onClick={onDone} className="btn-primary">
@@ -54,7 +54,7 @@ export default function WhatToTryNextCard({
         <div className="section-band section-band--suggestions">
           <span className="section-label section-label--suggestions">What you’ve tried before — and what worked</span>
           <p className="mt-2 text-sm text-care-bark">
-            From your logs: how often each approach was better, same, or worse.
+            From your notes: how often each approach was better, same, or worse.
           </p>
           <ul className="mt-3 space-y-3">
             {pastAttempts.attempts.map((a, i) => (
@@ -77,7 +77,7 @@ export default function WhatToTryNextCard({
         <div className="section-band section-band--trigger">
           <span className="section-label section-label--trigger">No past tries yet for this behavior</span>
           <p className="mt-2 text-sm text-care-bark">
-            You don’t have past logs for <strong>{behaviorLabel}</strong> yet. After you try something and set the outcome in History, we’ll show what worked for you here.
+            You don’t have past notes for <strong>{behaviorLabel}</strong> yet. After you try something and set the outcome in History, we’ll show what worked for you here.
           </p>
         </div>
       )}

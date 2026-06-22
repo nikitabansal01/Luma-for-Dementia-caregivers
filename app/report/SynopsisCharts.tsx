@@ -48,7 +48,7 @@ export function SynopsisMetricTiles({
     <div className="synopsis-metrics">
       <div className="synopsis-metrics__tile">
         <SynopsisCoverageRing percent={coverage} />
-        <p className="synopsis-metrics__label">Days logged</p>
+        <p className="synopsis-metrics__label">Days with notes</p>
         <p className="synopsis-metrics__value">
           {daysWithLogs}/{totalDays}
         </p>

@@ -92,7 +92,7 @@ export default function ClinicianSummaryView({
           <>
             <div className="synopsis-chart-grid">
               <SynopsisBarChart
-                title="Most frequently logged behaviors"
+                title="Most frequently noted behaviors"
                 showSeverity
                 items={data.topBehaviors.map((behavior) => ({
                   label: getBehaviorLabel(behavior.behavior),
@@ -230,7 +230,7 @@ export default function ClinicianSummaryView({
       <section className="card synopsis-section synopsis-section--changes">
         <h2 className="card-heading mb-2">Suggested topics for care conversation</h2>
         <p className="mb-4 text-sm text-care-stone">
-          Questions derived from logged patterns — starting points for discussion, not recommendations.
+          Questions derived from observed patterns — starting points for discussion, not recommendations.
         </p>
         <SynopsisQuestionCards questions={data.discussionQuestions} />
       </section>

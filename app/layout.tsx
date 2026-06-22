@@ -18,7 +18,7 @@ const lora = Lora({
 
 export const metadata: Metadata = {
   title: "Luma for Dementia caregivers",
-  description: "Voice and text care logging for dementia caregivers — Luma companion, coach flow, and clinician synopsis",
+  description: "Shared clarity for dementia caregivers — reflect with Luma, guided check-ins, and patterns for your care team",
 };
 
 export default function RootLayout({

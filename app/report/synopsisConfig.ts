@@ -27,7 +27,7 @@ export const SYNOPSIS_TABS: {
 ];
 
 export const SYNOPSIS_DISCLAIMER =
-  "Based on caregiver-entered logs. Not medical advice.";
+  "Based on caregiver-entered observations. Not medical advice.";
 
 export const SYNOPSIS_SAMPLE_LABEL = "Sample report";
 

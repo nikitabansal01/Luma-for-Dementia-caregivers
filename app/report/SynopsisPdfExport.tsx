@@ -14,7 +14,7 @@ export default function SynopsisPdfExport({
   return (
     <PDFDownloadLink
       document={<ReportPDF data={data} days={days} />}
-      fileName={`care-log-synopsis-${days}days.pdf`}
+      fileName={`care-synopsis-${days}days.pdf`}
       className="btn-secondary inline-flex items-center"
     >
       Export PDF

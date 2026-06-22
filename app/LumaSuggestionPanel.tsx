@@ -20,7 +20,7 @@ export default function LumaSuggestionPanel({
       <div className="mt-4 space-y-3">
         {recommendations.length === 0 ? (
           <p className="text-sm leading-relaxed text-care-stone">
-            No specific suggestions right now. Save this log and share with your care team when
+            No specific suggestions right now. Save this note and share with your care team when
             you&apos;re ready.
           </p>
         ) : (

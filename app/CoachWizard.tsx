@@ -89,7 +89,7 @@ function SuggestedNextSteps({
       <div className="mt-4 space-y-3">
         {recommendations.length === 0 ? (
           <p className="text-sm leading-relaxed text-care-stone">
-            No specific suggestions right now. Save this log and share with your care team when
+            No specific suggestions right now. Save this note and share with your care team when
             you&apos;re ready.
           </p>
         ) : (
@@ -249,7 +249,7 @@ export default function CoachWizard({ onClose }: CoachWizardProps) {
           <header className="coach-flow-header">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-care-olive">
-                Guided clarity log
+                Guided clarity check-in
               </p>
               <p className="mt-1 text-sm text-care-stone">
                 Step {step} of {COACH_STEPS.length}
@@ -528,7 +528,7 @@ export default function CoachWizard({ onClose }: CoachWizardProps) {
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
               >
-                {isSubmitting ? "Saving…" : "Save log"}
+                {isSubmitting ? "Saving…" : "Save note"}
               </button>
             )}
           </footer>

@@ -130,7 +130,7 @@ export function getSampleSynopsisReport(days: number): ReportData {
  * Replace when log previews and profile lines are wired end-to-end.
  */
 export const MOCK_SYNOPSIS_EXTRAS = {
-  caregiverProfileLine: "Adult child caregiver, logging from home",
+  caregiverProfileLine: "Adult child caregiver, noting from home",
   caredForProfileLine: "Parent with moderate Alzheimer's disease, lives at home with family",
   recentMoments: [
     {

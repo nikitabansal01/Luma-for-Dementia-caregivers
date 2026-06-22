@@ -183,21 +183,21 @@ function buildRethinkNote(
   const labelLower = label.toLowerCase();
 
   if (stats.madeWorse >= 1 && stats.helped === 0) {
-    return `${label} did not help in ${unhelpful} log${unhelpful === 1 ? "" : "s"} and was sometimes followed by escalation. It may be worth trying a different approach next time — you were doing your best with the tools you had.`;
+    return `${label} did not help in ${unhelpful} note${unhelpful === 1 ? "" : "s"} and was sometimes followed by escalation. It may be worth trying a different approach next time — you were doing your best with the tools you had.`;
   }
 
   if (stats.didNotHelp >= 2 && stats.helped <= 1) {
     if (labelLower.includes("redirect")) {
-      return `${label} had a mixed response in your logs. When it did not land, try one-step cues or a calm change of focus instead.`;
+      return `${label} had a mixed response in your notes. When it did not land, try one-step cues or a calm change of focus instead.`;
     }
-    return `${label} did not help in ${stats.didNotHelp} log${stats.didNotHelp === 1 ? "" : "s"}. That does not mean you did anything wrong — it may help to try something else when this comes up.`;
+    return `${label} did not help in ${stats.didNotHelp} note${stats.didNotHelp === 1 ? "" : "s"}. That does not mean you did anything wrong — it may help to try something else when this comes up.`;
   }
 
   if (stats.madeWorse >= 1) {
-    return `${label} was followed by escalation in ${stats.madeWorse} log${stats.madeWorse === 1 ? "" : "s"}. Consider a gentler alternative when you can — what works varies day to day.`;
+    return `${label} was followed by escalation in ${stats.madeWorse} note${stats.madeWorse === 1 ? "" : "s"}. Consider a gentler alternative when you can — what works varies day to day.`;
   }
 
-  return `${label} had limited benefit in your logs so far. It is okay to experiment — note what you try so patterns become clearer.`;
+  return `${label} had limited benefit in your notes so far. It is okay to experiment — note what you try so patterns become clearer.`;
 }
 
 export function buildStrategyOutcomeDetails(data: ReportData): StrategyOutcomeBreakdown[] {
@@ -372,22 +372,22 @@ export function buildWorkingStrategies(data: ReportData): CaregiverWorkingStrate
 
 export function buildCaregiverIntro(data: ReportData): string {
   if (data.totalIncidents === 0) {
-    return "Log a few care observations and this page will highlight triggers to watch for and strategies that seem to help — focused on what you can act on at home.";
+    return "Add a few care observations and this page will highlight triggers to watch for and strategies that seem to help — focused on what you can act on at home.";
   }
 
   const avoidableCount = buildAvoidableBehaviors(data).length;
   const workingCount = buildWorkingStrategies(data).filter((strategy) => strategy.helped > 0).length;
 
   if (avoidableCount > 0 && workingCount > 0) {
-    return `From ${data.totalIncidents} observations you logged, some challenging behaviors often follow triggers you can watch for — and you’ve already found approaches that help. Here’s a practical summary.`;
+    return `From ${data.totalIncidents} observations you noted, some challenging behaviors often follow triggers you can watch for — and you’ve already found approaches that help. Here’s a practical summary.`;
   }
   if (avoidableCount > 0) {
-    return `From ${data.totalIncidents} observations you logged, these behaviors often show up alongside triggers worth paying attention to — small shifts in routine or environment sometimes help.`;
+    return `From ${data.totalIncidents} observations you noted, these behaviors often show up alongside triggers worth paying attention to — small shifts in routine or environment sometimes help.`;
   }
   if (workingCount > 0) {
-    return `From ${data.totalIncidents} observations you logged, these strategies stood out as helpful — keep noting when they work so the picture stays clear.`;
+    return `From ${data.totalIncidents} observations you noted, these strategies stood out as helpful — keep noting when they work so the picture stays clear.`;
   }
-  return "Keep logging triggers and what you try — over time this page will highlight what to watch for and what seems to help at home.";
+  return "Keep noting triggers and what you try — over time this page will highlight what to watch for and what seems to help at home.";
 }
 
 /** @deprecated Use buildCaregiverIntro */
@@ -404,10 +404,10 @@ export function buildCaregiverNextSteps(data: ReportData): string[] {
   }
   const working = buildWorkingStrategies(data)[0];
   if (working && working.helped > 0) {
-    steps.push(`Keep using ${working.label.toLowerCase()} when you can — it’s helped in ${working.helped} of ${working.total} tries you logged.`);
+    steps.push(`Keep using ${working.label.toLowerCase()} when you can — it’s helped in ${working.helped} of ${working.total} tries you noted.`);
   }
   if (steps.length === 0) {
-    steps.push("When you log, note what was happening just before and what you tried — that makes this summary more useful.");
+    steps.push("When you note an observation, include what was happening just before and what you tried — that makes this summary more useful.");
   }
   return steps.slice(0, 3);
 }

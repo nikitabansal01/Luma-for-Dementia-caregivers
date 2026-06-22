@@ -62,7 +62,7 @@ function trendPhrase(trend: SynopsisTrend): string {
     case "worsening":
       return "may be increasing in frequency or severity compared with the prior period";
     case "insufficient_data":
-      return "are still limited — more logs over time will clarify patterns";
+      return "are still limited — more notes over time will clarify patterns";
     default:
       return "appear relatively stable compared with the prior period";
   }
@@ -79,7 +79,7 @@ type ExecutiveSummaryInput = {
 export function buildExecutiveSummary(input: ExecutiveSummaryInput): string {
   const { days, totalIncidents, topBehaviorCode, topTriggerLabels, trend } = input;
   if (totalIncidents === 0) {
-    return `No incidents were logged in the last ${days} days. Continued logging can help you and your care team spot patterns before appointments.`;
+    return `No incidents were noted in the last ${days} days. Continued observations can help you and your care team spot patterns before appointments.`;
   }
 
   const behaviorPart = topBehaviorCode
@@ -91,7 +91,7 @@ export function buildExecutiveSummary(input: ExecutiveSummaryInput): string {
       ? `Common trigger patterns included ${topTriggerLabels.slice(0, 3).join(", ").toLowerCase()}`
       : "Trigger patterns were not consistently recorded";
 
-  return `Over the last ${days} days, ${totalIncidents} incident${totalIncidents === 1 ? "" : "s"} were logged. ${behaviorPart}. ${triggerPart}. Overall, frequency and severity ${trendPhrase(trend)}.`;
+  return `Over the last ${days} days, ${totalIncidents} incident${totalIncidents === 1 ? "" : "s"} were noted. ${behaviorPart}. ${triggerPart}. Overall, frequency and severity ${trendPhrase(trend)}.`;
 }
 
 type DiscussionInput = {

@@ -59,7 +59,7 @@ export default function ReportPDF({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>A) Data Confidence</Text>
           <Text style={styles.text}>
-            {data.daysWithLogs} / {data.totalDays} days with logs (
+            {data.daysWithLogs} / {data.totalDays} days with notes (
             {((data.daysWithLogs / data.totalDays) * 100).toFixed(1)}%)
           </Text>
         </View>

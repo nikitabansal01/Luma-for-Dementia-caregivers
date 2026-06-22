@@ -82,7 +82,7 @@ export default function QuickLogForm({ onClose }: { onClose: () => void }) {
   return (
     <div className="card">
       <div className="flex items-center justify-between">
-        <h2 className="card-heading">Quick log</h2>
+        <h2 className="card-heading">Quick note</h2>
         <button type="button" onClick={onClose} className="text-care-stone hover:text-care-bark">
           Cancel
         </button>
@@ -163,7 +163,7 @@ export default function QuickLogForm({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <button type="submit" className="btn-primary">
-          Save log
+          Save note
         </button>
       </form>
     </div>

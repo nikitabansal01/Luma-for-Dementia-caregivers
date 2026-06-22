@@ -109,9 +109,9 @@ export default function ReportPage() {
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-care-stone">
           {isSample
             ? realLogCount === 0
-              ? "You're viewing an example synopsis. Log 3 care observations to see your own."
-              : `You've logged ${realLogCount} of ${SYNOPSIS_MIN_LOGS_FOR_REAL}. Example data below until you reach 3.`
-            : "Patterns and summaries from care observations you've logged."}
+              ? "You're viewing an example synopsis. Add 3 care observations to see your own."
+              : `You've noted ${realLogCount} of ${SYNOPSIS_MIN_LOGS_FOR_REAL}. Example data below until you reach 3.`
+            : "Patterns and summaries from the observations you've shared."}
         </p>
         <p className="synopsis-disclaimer mt-3">{SYNOPSIS_DISCLAIMER}</p>
       </header>
@@ -161,8 +161,8 @@ export default function ReportPage() {
             <h2 className="synopsis-sample-notice__title">Example synopsis — not your data yet</h2>
             <p className="synopsis-sample-notice__text">
               {realLogCount === 0
-                ? "Everything below is sample data showing what Luma can surface after a few logs."
-                : `You have ${realLogCount} log${realLogCount === 1 ? "" : "s"} so far. Log ${logsUntilRealSynopsis(realLogCount)} more to unlock your personal synopsis.`}
+                ? "Everything below is sample data showing what Luma can surface after a few notes."
+                : `You have ${realLogCount} note${realLogCount === 1 ? "" : "s"} so far. Add ${logsUntilRealSynopsis(realLogCount)} more to unlock your personal synopsis.`}
             </p>
             <div className="synopsis-sample-notice__progress">
               <div
@@ -179,12 +179,12 @@ export default function ReportPage() {
                 />
               </div>
               <span className="synopsis-sample-notice__progress-label">
-                {realLogCount}/{SYNOPSIS_MIN_LOGS_FOR_REAL} logs
+                {realLogCount}/{SYNOPSIS_MIN_LOGS_FOR_REAL} notes
               </span>
             </div>
           </div>
           <Link href="/" className="synopsis-sample-notice__cta">
-            Log a care moment →
+            Note a care moment →
           </Link>
         </div>
       )}
@@ -218,11 +218,11 @@ export default function ReportPage() {
               <div className="synopsis-sample-footer__content">
                 <h2 className="synopsis-sample-footer__title">Ready to see your own insights?</h2>
                 <p className="synopsis-sample-footer__text">
-                  Log care observations on the home screen — this synopsis fills in from what you note.
+                  Note care observations on the home screen — this synopsis fills in from what you share.
                 </p>
               </div>
               <Link href="/" className="synopsis-sample-footer__cta">
-                Start logging today →
+                Start noting today →
               </Link>
             </section>
           )}

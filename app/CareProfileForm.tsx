@@ -176,7 +176,7 @@ export default function CareProfileForm({
     <form onSubmit={handleSubmit} className="care-profile-form space-y-6" noValidate>
       {showDisclaimer && (
         <p className="care-profile-form__disclaimer">
-          Luma helps you log and reflect — it is not medical advice. Your answers stay on this device.
+          Luma helps you note and reflect — it is not medical advice. Your answers stay on this device.
         </p>
       )}
 

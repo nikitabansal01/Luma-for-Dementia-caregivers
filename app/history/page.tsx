@@ -106,7 +106,7 @@ export default function HistoryPage({ searchParams }: { searchParams: SearchPara
       <header>
         <h1 className="font-serif text-2xl font-semibold text-care-forest sm:text-3xl">History</h1>
         <p className="mt-1 text-sm text-care-stone">
-          Filter and review past logs. Open a log to add or update outcome.
+          Filter and review past notes. Open one to add or update outcome.
         </p>
       </header>
 
@@ -145,14 +145,14 @@ export default function HistoryPage({ searchParams }: { searchParams: SearchPara
         <div className="section-band section-band--trigger">
           <span className="section-label section-label--trigger">Pattern hints</span>
           <p className="mt-2 text-sm text-care-bark">
-            <strong className="text-care-forest">Summary:</strong> {logs.length} log{logs.length !== 1 ? "s" : ""} in period · Most common behavior: <strong>{hints.topBehavior}</strong> · Most common trigger: <strong>{hints.topTrigger}</strong> · Outcomes: {hints.outcomes.better} better, {hints.outcomes.same} same, {hints.outcomes.worse} worse{hints.outcomes.unknown ? `, ${hints.outcomes.unknown} not yet set` : ""}
+            <strong className="text-care-forest">Summary:</strong> {logs.length} note{logs.length !== 1 ? "s" : ""} in period · Most common behavior: <strong>{hints.topBehavior}</strong> · Most common trigger: <strong>{hints.topTrigger}</strong> · Outcomes: {hints.outcomes.better} better, {hints.outcomes.same} same, {hints.outcomes.worse} worse{hints.outcomes.unknown ? `, ${hints.outcomes.unknown} not yet set` : ""}
           </p>
         </div>
       )}
 
       {byDay.length === 0 ? (
         <p className="rounded-xl border border-dashed border-care-sage bg-care-sage/30 py-10 text-center text-sm text-care-stone">
-          No logs in this range.
+          No notes in this range.
         </p>
       ) : (
         <div className="space-y-6">

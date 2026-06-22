@@ -87,7 +87,7 @@ export default function CaregiverPatternsView({
 
         <DashboardCard title="Top recurring behaviors" className="cg-card--behaviors">
           {!hasData || behaviorRows.length === 0 ? (
-            <p className="cg-empty">Log behaviors to see what shows up most.</p>
+            <p className="cg-empty">Add notes to see what shows up most.</p>
           ) : (
             <div className="cg-table">
               <div className="cg-table__head cg-table__row">
@@ -118,7 +118,7 @@ export default function CaregiverPatternsView({
 
         <DashboardCard title="Triggers you may be able to reduce" className="cg-card--triggers">
           {reducibleTriggers.length === 0 ? (
-            <p className="cg-empty">Note triggers when you log — patterns appear here.</p>
+            <p className="cg-empty">Note triggers as you go — patterns appear here.</p>
           ) : (
             <ul className="cg-trigger-list">
               {reducibleTriggers.map((trigger) => (
@@ -129,7 +129,7 @@ export default function CaregiverPatternsView({
                   <div className="cg-trigger-list__body">
                     <div className="cg-trigger-list__top">
                       <span className="cg-trigger-list__name">{trigger.label}</span>
-                      <span className="cg-trigger-list__count">{trigger.count} logs</span>
+                      <span className="cg-trigger-list__count">{trigger.count} notes</span>
                     </div>
                     <ConfidenceBadge confidence={trigger.confidence} />
                     {trigger.linkedBehaviors.length > 0 && (
@@ -146,7 +146,7 @@ export default function CaregiverPatternsView({
 
         <DashboardCard title="Strategies that seemed to help" className="cg-card--helped">
           {helpfulStrategies.length === 0 ? (
-            <p className="cg-empty">When something helps, log the outcome here.</p>
+            <p className="cg-empty">When something helps, note the outcome here.</p>
           ) : (
             <ul className="cg-strategy-list">
               {helpfulStrategies.map((strategy) => (

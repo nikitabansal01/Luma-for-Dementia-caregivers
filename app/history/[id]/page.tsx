@@ -29,10 +29,10 @@ export default async function LogDetailPage({ params }: { params: { id: string }
         ← Back to history
       </Link>
       <header>
-        <h1 className="font-serif text-2xl font-semibold text-care-forest">Log detail</h1>
+        <h1 className="font-serif text-2xl font-semibold text-care-forest">Note detail</h1>
         <p className="mt-1 text-sm text-care-stone">{formatEpisodeTimingSummary(log)}</p>
         <p className="mt-1 text-xs text-care-stone/80">
-          Logged {formatDateTime(log.created_at)}
+          Noted {formatDateTime(log.created_at)}
         </p>
       </header>
       <div className="card">
