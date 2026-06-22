@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { CareRecipient } from "@/src/lib/repo";
 import {
+  AGE_RANGES,
   CAREGIVER_RELATIONSHIPS,
   DEMENTIA_STAGES,
   LIVING_SITUATIONS,
   VISIT_PURPOSES,
+  type AgeRangeCode,
   type CaregiverRelationshipCode,
   type DementiaStageCode,
   type LivingSituationCode,
@@ -20,9 +22,18 @@ export type CareProfileFormValues = {
   care_recipient_name: string;
   caregiver_relationship: CaregiverRelationshipCode | "";
   stage: DementiaStageCode | "";
-  age: string;
+  age_range: AgeRangeCode | "";
   living_situation: LivingSituationCode | "";
 };
+
+function ageRangeFromRecipient(recipient: CareRecipient): AgeRangeCode | "" {
+  if (recipient.age_range) return recipient.age_range as AgeRangeCode;
+  if (recipient.age == null) return "";
+  if (recipient.age < 65) return "UNDER_65";
+  if (recipient.age <= 74) return "AGE_65_74";
+  if (recipient.age <= 84) return "AGE_75_84";
+  return "AGE_85_PLUS";
+}
 
 function valuesFromRecipient(recipient: CareRecipient): CareProfileFormValues {
   return {
@@ -32,7 +43,7 @@ function valuesFromRecipient(recipient: CareRecipient): CareProfileFormValues {
     care_recipient_name: recipient.name === "Default" ? "" : recipient.name,
     caregiver_relationship: (recipient.caregiver_relationship as CaregiverRelationshipCode) ?? "",
     stage: (recipient.stage as DementiaStageCode) ?? "",
-    age: recipient.age != null ? String(recipient.age) : "",
+    age_range: ageRangeFromRecipient(recipient),
     living_situation: (recipient.living_situation as LivingSituationCode) ?? "",
   };
 }
@@ -44,15 +55,52 @@ type CareProfileSubmitResult =
 type CareProfileFormProps = {
   recipient: CareRecipient;
   showDisclaimer?: boolean;
+  actionNote?: string;
   submitLabel?: string;
   onSubmit: (values: CareProfileFormValues) => Promise<CareProfileSubmitResult | void>;
   onSkip?: () => Promise<{ success: boolean; error?: string } | void>;
   skipLabel?: string;
 };
 
+function ProfileSectionHeader({
+  title,
+  titleId,
+  whyText,
+}: {
+  title: string;
+  titleId: string;
+  whyText: string;
+}) {
+  const [whyOpen, setWhyOpen] = useState(false);
+  const whyId = `${titleId}-why`;
+
+  return (
+    <header className="care-profile-form__section-header">
+      <h3 id={titleId} className="care-profile-form__section-title">
+        {title}
+      </h3>
+      <div className={`care-profile-form__section-why${whyOpen ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="care-profile-form__why-btn"
+          aria-expanded={whyOpen}
+          aria-controls={whyId}
+          onClick={() => setWhyOpen((open) => !open)}
+        >
+          Why?
+        </button>
+        <p id={whyId} className="care-profile-form__section-lead" role="tooltip">
+          {whyText}
+        </p>
+      </div>
+    </header>
+  );
+}
+
 export default function CareProfileForm({
   recipient,
   showDisclaimer = false,
+  actionNote,
   submitLabel = "Save profile",
   onSubmit,
   onSkip,
@@ -134,12 +182,11 @@ export default function CareProfileForm({
 
       <div className="care-profile-form__sections">
       <section className="care-profile-form__section care-profile-form__section--you" aria-labelledby="about-you-heading">
-        <header className="care-profile-form__section-header">
-          <h3 id="about-you-heading" className="care-profile-form__section-title">
-            About you
-          </h3>
-          <p className="care-profile-form__section-lead">So we know who stopped by and how to reach you.</p>
-        </header>
+        <ProfileSectionHeader
+          title="About you"
+          titleId="about-you-heading"
+          whyText="So we know who stopped by and how to reach you."
+        />
 
         <div className="care-profile-form__section-body space-y-4">
           <div className="care-profile-form__row">
@@ -206,14 +253,11 @@ export default function CareProfileForm({
         className="care-profile-form__section care-profile-form__section--care"
         aria-labelledby="about-care-heading"
       >
-        <header className="care-profile-form__section-header">
-          <h3 id="about-care-heading" className="care-profile-form__section-title">
-            About the person you&apos;re caring for
-          </h3>
-          <p className="care-profile-form__section-lead">
-            Helps Luma and your clinician synopsis use the right context.
-          </p>
-        </header>
+        <ProfileSectionHeader
+          title="About the person you're caring for"
+          titleId="about-care-heading"
+          whyText="Helps Luma and your clinician synopsis use the right context."
+        />
 
         <div className="care-profile-form__section-body space-y-4">
           <div className="care-profile-form__row">
@@ -256,32 +300,34 @@ export default function CareProfileForm({
                 ))}
               </select>
             </div>
+          </div>
 
-            <div className="care-profile-form__field">
-              <label htmlFor="care-age" className="care-profile-form__label">
-                Their age
-              </label>
-              <input
-                id="care-age"
-                type="number"
-                min={1}
-                max={120}
-                value={values.age}
-                onChange={(e) => setValues((v) => ({ ...v, age: e.target.value }))}
-                placeholder="e.g. 82"
-                required
-              />
+          <div className="care-profile-form__field">
+            <span className="care-profile-form__label">Age range</span>
+            <div className="care-profile-form__stage-grid" role="radiogroup" aria-label="Age range">
+              {AGE_RANGES.map((range) => (
+                <label key={range.code} className="care-profile-form__stage-option">
+                  <input
+                    type="radio"
+                    name="care-age-range"
+                    value={range.code}
+                    checked={values.age_range === range.code}
+                    onChange={() => setValues((v) => ({ ...v, age_range: range.code }))}
+                  />
+                  <span>{range.label}</span>
+                </label>
+              ))}
             </div>
           </div>
 
           <div className="care-profile-form__field">
-            <span className="care-profile-form__label">Dementia stage</span>
-            <div className="care-profile-form__stage-grid" role="radiogroup" aria-label="Dementia stage">
+            <span className="care-profile-form__label">Diagnosis journey</span>
+            <div className="care-profile-form__stage-grid" role="radiogroup" aria-label="Diagnosis journey">
               {DEMENTIA_STAGES.map((s) => (
                 <label key={s.code} className="care-profile-form__stage-option">
                   <input
                     type="radio"
-                    name="dementia-stage"
+                    name="diagnosis-journey"
                     value={s.code}
                     checked={values.stage === s.code}
                     onChange={() => setValues((v) => ({ ...v, stage: s.code }))}
@@ -292,28 +338,28 @@ export default function CareProfileForm({
             </div>
           </div>
 
-          <div className="care-profile-form__field lg:max-w-md">
+          <div className="care-profile-form__field">
             <label htmlFor="care-living" className="care-profile-form__label">
               Living situation <span className="font-normal text-care-stone">(optional)</span>
             </label>
-              <select
-                id="care-living"
-                value={values.living_situation}
-                onChange={(e) =>
-                  setValues((v) => ({
-                    ...v,
-                    living_situation: e.target.value as LivingSituationCode | "",
-                  }))
-                }
-              >
-                <option value="">Select if you&apos;d like…</option>
-                {LIVING_SITUATIONS.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              id="care-living"
+              value={values.living_situation}
+              onChange={(e) =>
+                setValues((v) => ({
+                  ...v,
+                  living_situation: e.target.value as LivingSituationCode | "",
+                }))
+              }
+            >
+              <option value="">Select if you&apos;d like…</option>
+              {LIVING_SITUATIONS.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
       </div>
@@ -340,6 +386,7 @@ export default function CareProfileForm({
           </button>
         )}
       </div>
+      {actionNote && <p className="care-profile-form__action-note">{actionNote}</p>}
     </form>
   );
 }
@@ -351,9 +398,8 @@ export function validateCareProfileFormValues(values: CareProfileFormValues): st
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address";
   if (!values.visit_purpose) return "Select what brings you here";
   if (!values.caregiver_relationship) return "Select who you're caring for";
-  if (!values.stage) return "Select a dementia stage";
-  const age = Number(values.age);
-  if (!Number.isInteger(age) || age < 1 || age > 120) return "Enter a valid age between 1 and 120";
+  if (!values.age_range) return "Select an age range";
+  if (!values.stage) return "Select a diagnosis journey";
   return null;
 }
 
@@ -365,7 +411,7 @@ export function careProfileFormToPayload(values: CareProfileFormValues) {
     name: values.care_recipient_name.trim() || undefined,
     caregiver_relationship: values.caregiver_relationship,
     stage: values.stage,
-    age: Number(values.age),
+    age_range: values.age_range,
     living_situation: values.living_situation || null,
   };
 }

@@ -106,6 +106,7 @@ export type CareRecipient = {
   stage: string | null;
   caregiver_relationship: string | null;
   age: number | null;
+  age_range: string | null;
   living_situation: string | null;
   visitor_name: string | null;
   visitor_email: string | null;
@@ -115,7 +116,8 @@ export type CareRecipient = {
   created_at: string;
 };
 
-const dementiaStageEnum = z.enum(["MCI", "MILD", "MODERATE", "SEVERE"]);
+const dementiaStageEnum = z.enum(["MCI", "MILD", "MODERATE", "SEVERE", "NOT_SURE"]);
+const ageRangeEnum = z.enum(["UNDER_65", "AGE_65_74", "AGE_75_84", "AGE_85_PLUS", "NOT_SURE"]);
 const caregiverRelationshipEnum = z.enum([
   "SPOUSE",
   "ADULT_CHILD",
@@ -128,9 +130,13 @@ const caregiverRelationshipEnum = z.enum([
 ]);
 const livingSituationEnum = z.enum([
   "LIVES_WITH_ME",
-  "SAME_CITY_SEPARATE",
+  "LIVES_WITH_FAMILY",
+  "LIVES_ALONE",
+  "ASSISTED_LIVING",
   "MEMORY_CARE",
+  "NURSING_FACILITY",
   "OTHER",
+  "SAME_CITY_SEPARATE",
 ]);
 const visitPurposeEnum = z.enum(["CURIOUS", "COLLABORATE", "CAREGIVER", "OTHER"]);
 
@@ -141,7 +147,7 @@ export const saveCareProfileSchema = z.object({
   name: z.string().trim().max(60).optional(),
   stage: dementiaStageEnum,
   caregiver_relationship: caregiverRelationshipEnum,
-  age: z.number().int().min(1, "Enter a valid age").max(120),
+  age_range: ageRangeEnum,
   living_situation: livingSituationEnum.nullable().optional(),
 });
 
@@ -170,6 +176,7 @@ function mapCareRecipientRow(row: Record<string, unknown>): CareRecipient {
     stage: (row.stage as string | null) ?? null,
     caregiver_relationship: (row.caregiver_relationship as string | null) ?? null,
     age: row.age != null ? Number(row.age) : null,
+    age_range: (row.age_range as string | null) ?? null,
     living_situation: (row.living_situation as string | null) ?? null,
     visitor_name: (row.visitor_name as string | null) ?? null,
     visitor_email: (row.visitor_email as string | null) ?? null,
@@ -198,7 +205,8 @@ export function saveCareProfile(payload: unknown): CareRecipient {
     name: careRecipientName,
     stage: parsed.stage,
     caregiver_relationship: parsed.caregiver_relationship,
-    age: parsed.age,
+    age: null,
+    age_range: parsed.age_range,
     living_situation: parsed.living_situation ?? null,
     onboarding_completed_at: now,
     onboarding_skipped_at: null,
@@ -214,7 +222,8 @@ export function saveCareProfile(payload: unknown): CareRecipient {
         name = ?,
         stage = ?,
         caregiver_relationship = ?,
-        age = ?,
+        age = NULL,
+        age_range = ?,
         living_situation = ?,
         onboarding_completed_at = ?,
         onboarding_skipped_at = NULL
@@ -226,7 +235,7 @@ export function saveCareProfile(payload: unknown): CareRecipient {
       careRecipientName,
       parsed.stage,
       parsed.caregiver_relationship,
-      parsed.age,
+      parsed.age_range,
       parsed.living_situation ?? null,
       now,
       recipient.id

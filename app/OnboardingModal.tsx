@@ -54,14 +54,15 @@ export default function OnboardingModal({ recipient }: OnboardingModalProps) {
             Welcome to Luma
           </h2>
           <p className="text-sm leading-relaxed text-care-stone">
-            A quick intro plus a few details about who you care for — about a minute.
+            Luma helps dementia caregivers understand difficult behaviors, spot possible triggers, and
+            find practical next steps to reduce distressing episodes.
           </p>
         </header>
 
         <CareProfileForm
           recipient={recipient}
-          showDisclaimer
-          submitLabel="Continue"
+          submitLabel="Start using Luma"
+          actionNote="Not medical advice. Your notes stay private. You can change these details anytime."
           skipLabel="Set up later"
           onSubmit={handleSubmit}
           onSkip={handleSkip}

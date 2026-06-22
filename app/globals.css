@@ -643,16 +643,27 @@
     @apply border-t-4 border-t-care-forest;
   }
   .care-profile-form__section-header {
-    @apply border-b border-care-sage/80 bg-care-cream/50 px-4 py-4 sm:px-5 lg:flex lg:items-baseline lg:justify-between lg:gap-6;
+    @apply relative border-b border-care-sage/80 bg-care-cream/50 px-4 py-4 sm:px-5;
   }
   .care-profile-form__section-body {
     @apply px-4 py-4 sm:px-5 sm:py-5;
   }
   .care-profile-form__section-title {
-    @apply font-serif text-lg font-semibold text-care-forest;
+    @apply pr-16 font-serif text-lg font-semibold text-care-forest;
+  }
+  .care-profile-form__section-why {
+    @apply absolute right-4 top-4 sm:right-5;
+  }
+  .care-profile-form__why-btn {
+    @apply rounded-full border border-care-sage bg-white px-2.5 py-1 text-xs font-medium text-care-stone transition hover:border-care-forest/40 hover:bg-care-cream hover:text-care-forest;
   }
   .care-profile-form__section-lead {
-    @apply mt-1 text-sm leading-relaxed text-care-stone lg:mt-0 lg:max-w-md lg:text-right;
+    @apply pointer-events-none absolute right-0 top-full z-10 mt-2 hidden w-56 rounded-lg border border-care-sage bg-white p-3 text-sm leading-relaxed text-care-stone shadow-card sm:w-64;
+  }
+  .care-profile-form__section-why:hover .care-profile-form__section-lead,
+  .care-profile-form__section-why.is-open .care-profile-form__section-lead,
+  .care-profile-form__section-why:focus-within .care-profile-form__section-lead {
+    @apply block;
   }
   .care-profile-form__disclaimer {
     @apply rounded-lg border border-care-sage bg-care-cream/80 px-3 py-2.5 text-xs leading-relaxed text-care-stone;
@@ -695,6 +706,9 @@
   }
   .care-profile-form__actions {
     @apply flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap;
+  }
+  .care-profile-form__action-note {
+    @apply text-xs leading-relaxed text-care-stone;
   }
 
   /* Home dashboard — production-style Today view */

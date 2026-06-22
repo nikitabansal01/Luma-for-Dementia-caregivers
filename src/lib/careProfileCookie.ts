@@ -15,6 +15,7 @@ function emptyRecipient(): CareRecipient {
     stage: null,
     caregiver_relationship: null,
     age: null,
+    age_range: null,
     living_situation: null,
     visitor_name: null,
     visitor_email: null,

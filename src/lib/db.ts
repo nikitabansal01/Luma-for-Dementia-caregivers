@@ -97,6 +97,9 @@ function initSchema(db: Database.Database): void {
   try {
     db.exec(`ALTER TABLE care_recipients ADD COLUMN visitor_name TEXT`);
   } catch {}
+  try {
+    db.exec(`ALTER TABLE care_recipients ADD COLUMN age_range TEXT`);
+  } catch {}
 }
 
 let dbInstance: Database.Database | null = null;
