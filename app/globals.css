@@ -1306,17 +1306,10 @@
   .luma-companion__summary-body {
     @apply border-t border-care-sage/50 px-4 pb-3 pt-2;
   }
-  .luma-companion__summary-dl {
-    @apply space-y-2;
-  }
-  .luma-companion__summary-row {
-    @apply grid grid-cols-[5.5rem_1fr] gap-2 text-xs;
-  }
-  .luma-companion__summary-row dt {
-    @apply font-medium text-care-stone;
-  }
-  .luma-companion__summary-row dd {
-    @apply text-care-bark;
+  .luma-companion__draft-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
   }
   .luma-companion__summary-empty {
     @apply mt-1.5 text-care-stone leading-relaxed;
@@ -1342,8 +1335,15 @@
   .luma-companion__autosave-hint {
     @apply mt-2 text-xs text-care-stone;
   }
-  .luma-companion__final-log-fields {
-    @apply max-h-[min(28rem,55vh)] space-y-5 overflow-y-auto pr-1;
+  .luma-companion__summary-body .luma-companion__draft-fields {
+    max-height: min(28rem, 55vh);
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+  .luma-companion__final-log .luma-companion__draft-fields {
+    max-height: min(28rem, 55vh);
+    overflow-y: auto;
+    padding-right: 0.25rem;
   }
   .luma-companion__suggestions {
     @apply mt-4;

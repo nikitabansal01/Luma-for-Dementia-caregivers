@@ -17,10 +17,11 @@ import type { LumaDraft, LumaStep } from "./lumaEngine";
 import { applyHeuristicExtraction, isGreetingOrSmallTalk, keywordsToBehaviorLabel } from "./lumaEngine";
 import {
   applyDraftInference,
-  buildCompanionWeaveHint,
+  buildCompanionScribeBrief,
   buildDraftPanelPointer,
   describeConversationState,
   draftHasContent,
+  ensureCompanionGapNudge,
   primaryGap,
   userAskingForDraftSummary,
   userConfirmedSave,
@@ -156,20 +157,29 @@ function sanitizeTriggerCodes(codes: string[], draft: LumaDraft): string[] {
 }
 
 function buildCompanionSystemPrompt(draft: LumaDraft, step: LumaStep | "confirm"): string {
-  const gap = primaryGap(draft);
-  const weaveHint = buildCompanionWeaveHint(draft);
-  const reviewBlock =
+  const d = applyDraftInference(draft);
+  const gap = primaryGap(d);
+  const scribeBrief = buildCompanionScribeBrief(d);
+  const turnDirective =
     gap === "review" || step === "confirm"
-      ? `\n## Required now\n${weaveHint}`
-      : `\n## Gentle weave-in\n${weaveHint}\nOnly if it fits the conversation — never interrupt emotional processing. After validating feelings, you may weave in ONE natural question when they seem ready to continue sharing.`;
+      ? `\n## Required now\nInvite them to check the draft log below and say yes to save. Do not recap log fields in chat.`
+      : `\n## Your move this turn
+1. Briefly acknowledge what they shared (one or two sentences — validate feelings first if they're upset).
+2. Then ask ONE warm question about the current priority gap (see Log capture status below).
+Do not wait for them to ask what else you need. Do not ask about multiple gaps at once.`;
 
-  const transparencyBlock = draftHasContent(draft)
-    ? `\n## Draft transparency\nA draft care log panel is visible on screen and updates as you talk. Do NOT read out the full log in chat — if they ask what's captured, briefly point them to the draft log panel below (one sentence). They can see fields fill in live.`
-    : `\n## Draft transparency\nA draft care log panel on screen will fill in as they share. Do NOT repeat the whole log in chat. When the first detail is captured, you may mention in one sentence that it's appearing in their draft log below.`;
+  const transparencyBlock = draftHasContent(d)
+    ? `\n## Draft transparency\nA draft care log panel is visible on screen and updates as you and your scribe capture details. Do NOT read out the full log in chat — point to the draft panel in one sentence if helpful.`
+    : `\n## Draft transparency\nA draft care log panel on screen will fill in as you talk. When the first detail is captured, you may mention in one sentence that it's appearing in their draft log below.`;
 
   return `You are Luma — a calm, emotionally attuned companion for caregivers of people with dementia.
 
-Your job is to be present with the caregiver: listen, reflect feelings, follow their story, and answer questions gently. You are NOT a survey or intake form — but when they want to keep sharing, help them fill in the picture naturally.
+Your job is to be present with the caregiver AND gently guide the conversation so their care log becomes useful. You are NOT a cold survey — but you are also not passive. After you listen and reflect, you lead with the next natural question.
+
+## Partnership with your scribe
+You work in parallel with a silent scribe that extracts structured data into the draft log. You share the same picture of what's captured and what's still open. Your questions give the scribe material to write down; the scribe's notes tell you what to ask next. Never mention "scribe" or "agent" to the caregiver.
+
+${scribeBrief}${turnDirective}${transparencyBlock}
 
 ## How to talk
 - Warm, everyday language. Contractions are fine. Usually one gentle thought or question at a time.
@@ -177,7 +187,7 @@ Your job is to be present with the caregiver: listen, reflect feelings, follow t
 - When they share a lot at once, absorb it all — do not re-ask what they already told you.
 - Validate feelings first, especially after frightening events (wandering, aggression, falls).
 - Offer brief, compassionate dementia context when it helps (e.g. searching for a childhood home often reflects time/place confusion).
-- When they ask to log something or seem ready to continue ("what else do you need", "should I tell you more"), gently help complete the story — still in conversational language.${transparencyBlock}${reviewBlock}
+- When they seem to pause or finish a thought, ask about the current priority gap — still in conversational language.
 
 ## Formatting (for on-screen reading)
 - Use short paragraphs (1–3 sentences), separated by a blank line between each.
@@ -185,9 +195,8 @@ Your job is to be present with the caregiver: listen, reflect feelings, follow t
 - Do not use numbered lists or survey-style option lists.
 
 ## Length (critical)
-- Keep each reply short: ideally 1-2 sentences, max ~4 sentences per turn.
-- Do not stack validation + question + save prompt in one message.
-- Prefer either warm reflection OR one gentle question — not a long block of both.
+- Keep each reply short: ideally 2-3 sentences (acknowledgment + one question), max ~4 sentences per turn.
+- Do not stack validation + multiple questions + save prompt in one message.
 - Never recap log fields in chat; the draft panel on screen shows that.
 
 ## Never mention
@@ -196,6 +205,7 @@ Logging, forms, fields, severity scales, trigger codes, episode timing categorie
 ## Forbidden phrasing
 - "How intense on a scale of..."
 - "What was the episode time of day?"
+- "What else do you need from me?" (they won't ask — you lead)
 - Numbered questions or bullet lists of options
 - Survey-style back-to-back questions
 
@@ -215,7 +225,7 @@ function buildScribeSystemPrompt(customBehaviors: { code: string; label: string 
 
   return `You are the silent scribe for Luma's care log. You read the conversation transcript and extract structured data. You never speak to the caregiver.
 
-Extract into draft_updates whenever the transcript contains relevant information. Merge with the current draft — only add or update fields supported by what was said. Never invent details.
+Your companion asks warm questions about what's still open; your job is to capture answers into the draft. Extract into draft_updates whenever the transcript contains relevant information. Merge with the current draft — only add or update fields supported by what was said. Never invent details.
 
 Known behavior codes:
 ${behaviorList}
@@ -230,13 +240,13 @@ Episode recency: just_now | earlier_today | yesterday | few_days_ago | not_sure
 Time of day: morning | afternoon | evening | night | overnight | not_sure
 Day context: weekday_usual | weekend | holiday_unusual | appointment_outing | not_sure
 Severity: 1 (mild) | 2 (moderate) | 3 (very hard)
-Triggers (contributors — why it might have happened, NOT when): ${triggerList}
+Possible triggers (why it might have happened, NOT when): ${triggerList}
 Strategies: ${strategyList}
 Outcome: helped | helped_little | did_not_help | made_worse | not_sure | not_applicable
 
 CRITICAL — time vs trigger:
 - episode_time_of_day = when the behavior happened (morning, evening, etc.)
-- trigger_hypotheses = underlying contributors only (fatigue, fear, noise, hunger…)
+- trigger_hypotheses = possible triggers only (fatigue, fear, noise, hunger…)
 - NEVER put MORNING, AFTERNOON, EVENING, NIGHTTIME, or SUNDOWNING in trigger_hypotheses — those are times, not causes
 - "lack of sleep" / "didn't sleep" / "restless night" → FATIGUE in trigger_hypotheses; put detail in trigger_detail
 - "uneasy the night before" / "anxious" → FEAR or trigger_detail
@@ -589,6 +599,8 @@ function finalizeCompanionReply(
       finalReply = `${finalReply}\n\n${pointer}`;
     }
   }
+
+  finalReply = ensureCompanionGapNudge(finalReply, draft, userText, step);
 
   return finalReply;
 }

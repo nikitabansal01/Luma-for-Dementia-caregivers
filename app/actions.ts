@@ -24,6 +24,7 @@ import {
   type LumaStep,
   type LumaTurnResult,
 } from "@/src/lib/lumaEngine";
+import { ensureCompanionGapNudge } from "@/src/lib/lumaConversationDesign";
 import { getLumaModelConfig, isLumaLlmConfigured, processLumaTurnWithLlm } from "@/src/lib/lumaLlm";
 import {
   isLumaTtsConfigured,
@@ -334,7 +335,14 @@ export async function lumaTurnAction(payload: LumaTurnPayload): Promise<LumaTurn
     }
 
     const heuristic = processLumaTurn(step, userText, draft, customBehaviors);
-    return { ...heuristic, source: "heuristic" };
+    const resolvedStep = heuristic.step === "done" ? "done" : heuristic.step;
+    return {
+      ...heuristic,
+      lumaMessages: heuristic.lumaMessages.map((msg) =>
+        ensureCompanionGapNudge(msg, heuristic.draft, userText, resolvedStep)
+      ),
+      source: "heuristic",
+    };
   } catch (err) {
     return {
       success: false,

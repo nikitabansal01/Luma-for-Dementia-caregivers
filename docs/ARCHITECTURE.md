@@ -112,60 +112,212 @@ src/lib/
 
 ## 4. Luma — AI architecture
 
-### 4.1 Dual-model pattern (Companion + Scribe)
+### 4.1 End-to-end turn loop
 
-```
-User utterance + history + current LumaDraft
-              │
-    ┌─────────┴─────────┐
-    ▼                   ▼
-Companion LLM       Scribe LLM
-(gpt-4o / Sonnet)   (gpt-4o-mini / Haiku)
-Plain text reply    JSON { draft_updates, ready_to_save }
-    │                   │
-    └─────────┬─────────┘
-              ▼
-    applyHeuristicExtraction (always)
-    mergeDraft + applyDraftInference
-              ▼
-         LumaDraft state (client)
+Each caregiver message triggers one **turn** through `lumaTurnAction` → `processLumaTurnWithLlm` (or heuristic fallback). The loop below is the core runtime path.
+
+```mermaid
+flowchart TB
+  subgraph Client["Client (LumaCompanion.tsx)"]
+    U[User speaks/types]
+    D[LumaDraft state]
+    P[Editable draft panel + chat]
+    U --> P
+    P -->|lumaTurnAction| Server
+    Server -->|reply + merged draft| P
+    P --> D
+  end
+
+  subgraph Server["Server (processLumaTurnWithLlm)"]
+    H[applyHeuristicExtraction on utterance]
+    H --> WD[workingDraft]
+
+    WD --> C[Companion LLM]
+    WD --> S[Scribe LLM]
+
+    C -->|plain text reply| FP[finalizeCompanionReply]
+    S -->|draft_updates + ready_to_save| M[mergeDraft]
+
+    M --> INF[applyDraftInference]
+    INF --> ND[nextDraft]
+    ND --> RS[resolveTurnStep]
+    RS --> FP
+    FP --> OUT[Reply to caregiver]
+    ND --> OUT
+  end
+
+  subgraph Persist["Persistence layers"]
+    LS[(localStorage session)]
+    DB[(SQLite behavior_logs)]
+    D -.->|debounced auto-save| LS
+    D -->|explicit Save / chat yes| DB
+  end
 ```
 
-| Role | Responsibility | Must not |
-|------|----------------|----------|
-| **Companion** | Empathy, pacing, one gentle question | Emit JSON, read full log aloud, use schema jargon |
-| **Scribe** | Map utterance → field updates | Speak to user |
-| **Heuristics** | Gap filling, greeting guard, trigger/behavior hints | Replace companion voice when LLM available |
+**Key files:** `app/LumaCompanion.tsx` · `app/actions.ts` · `src/lib/lumaLlm.ts` · `src/lib/lumaEngine.ts` · `src/lib/lumaConversationDesign.ts`
+
+### 4.2 Companion–Scribe partnership
+
+The two agents are **not independent silos**. They share the same picture of capture progress and play complementary roles on every turn.
+
+```mermaid
+flowchart LR
+  subgraph Shared["Shared contract (lumaConversationDesign.ts)"]
+    PG[primaryGap draft]
+    DCS[describeConversationState]
+    CSB[buildCompanionScribeBrief]
+    PG --> CSB
+    DCS --> CSB
+  end
+
+  subgraph Companion["Companion (stronger LLM)"]
+    direction TB
+    C1[Validate feelings]
+    C2[Ask ONE question about current gap]
+    C3[Never read full log aloud]
+    C1 --> C2
+  end
+
+  subgraph Scribe["Scribe (lighter LLM)"]
+    direction TB
+    S1[Read transcript + draft JSON]
+    S2[Emit draft_updates]
+    S3[Set ready_to_save on explicit confirm]
+    S1 --> S2 --> S3
+  end
+
+  CSB --> Companion
+  CSB --> Scribe
+  C2 -->|caregiver answers| S2
+  S2 -->|updates draft| PG
+  PG -->|next turn| C2
+```
+
+| Agent | Input each turn | Output | Partnership rule |
+|-------|-----------------|--------|------------------|
+| **Companion** | History + `workingDraft` + `buildCompanionScribeBrief` | Plain-text reply | **Leads** — caregivers rarely ask “what else do you need?”; companion asks about the current gap after acknowledging |
+| **Scribe** | History + `workingDraft` + same capture status via `describeConversationState` | `{ draft_updates, ready_to_save? }` | **Captures** — extracts answers from what the companion drew out; never speaks to the user |
+| **Heuristics** | Same utterance, always first | Patched `workingDraft` | **Backfill** — behavior/trigger/timing hints; full fallback voice when LLM unavailable |
+
+Both LLM calls run **in parallel** on the same `workingDraft` (heuristic-preprocessed). The companion does not wait for the scribe’s JSON on that turn; merged scribe output becomes `nextDraft` for the **next** turn and for the draft panel immediately after the turn completes.
 
 Env-configured models; provider selection via `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LUMA_LLM_PROVIDER`.
 
-### 4.2 Conversation state machine (product layer)
+### 4.3 Narrative gap model (`primaryGap`)
 
-Not wizard steps — **thematic gaps** (`lumaConversationDesign.ts`):
+Not wizard steps — **thematic gaps** (`lumaConversationDesign.ts`). Only **one** gap is “priority” at a time; the companion asks about that gap, not the whole form.
 
+```mermaid
+stateDiagram-v2
+  [*] --> story: empty draft
+  story --> timing: behavior_code set
+  timing --> intensity: episode_recency + time_of_day + day_context
+  intensity --> context: severity set
+  context --> response: triggers_answered
+  response --> review: strategies_answered + outcome_answered
+  review --> [*]: save to behavior_logs
 ```
-story → timing → intensity → context → response → review
+
+| Gap | Missing until | Example companion question (warm, not schema jargon) |
+|-----|---------------|------------------------------------------------------|
+| `story` | `behavior_code` or custom behavior | “What’s been happening? You can start anywhere.” |
+| `timing` | Episode recency, time of day, day context | “When did that happen — just now, earlier today, or a few days ago?” |
+| `intensity` | `severity` | “That must have been hard. How intense was it for you?” |
+| `context` | `triggers_answered` (chips, detail, or skip) | “Do you have a sense of what might have led to it? We can reflect on it together.” |
+| `response` | `strategies_answered` then `outcome_answered` | “Did you try anything to help?” → “Did any of that seem to help?” |
+| `review` | All above | “If your draft log below looks right, say yes to save.” |
+
+`applyDraftInference()` marks gaps answered when data is already present (including manual edits in the draft panel).
+
+### 4.4 Companion decision layers
+
+Companion behavior is not a single prompt — it is **layered**. Lower layers run first; later layers can append or override tone.
+
+```mermaid
+flowchart TD
+  START[User message received] --> L0{Pending custom behavior?}
+  L0 -->|yes| CLARIFY_B[Clarify behavior label\nconfirmCustomBehavior]
+  L0 -->|no| L1[Layer 1: Heuristic extraction\napplyHeuristicExtraction]
+
+  L1 --> L2[Layer 2: Parallel LLM\nCompanion + Scribe]
+
+  L2 --> L3{resolveTurnStep}
+
+  L3 -->|user confirmed save\n+ gap review| SAVE[step = done → saveLog]
+  L3 -->|gap = review| CONFIRM[step = confirm]
+  L3 -->|else| GAP[step = gapToStep primaryGap]
+
+  GAP --> L4[Layer 3: Companion system prompt\nbuildCompanionScribeBrief + turn directive]
+
+  L4 --> L5[Layer 4: finalizeCompanionReply post-process]
+
+  L5 --> D1{step = confirm\nand not saving yet?}
+  D1 -->|yes| R1[Append save invite\npoint to draft panel]
+  D1 -->|no| D2
+
+  D2{User asked what's captured?}
+  D2 -->|yes| R2[Point to draft panel\nno field recap]
+  D2 -->|no| D3
+
+  D3{First capture or user wrapping up?}
+  D3 -->|yes| R3[Draft panel pointer]
+  D3 -->|no| D4
+
+  D4[Layer 5: ensureCompanionGapNudge]
+  D4 --> N1{Already has ? in reply?}
+  N1 -->|yes| OUT[Send reply]
+  N1 -->|no| N2{Defer? greeting only / review / confirm}
+  N2 -->|defer| OUT
+  N2 -->|nudge| R4[Append buildCompanionGapQuestionBrief]
+  R4 --> OUT
+
+  CONFIRM --> L5
 ```
 
-`primaryGap(draft)` drives companion weave hints and when to show the final editor.
+#### Layer reference
 
-### 4.3 Trust boundary: draft vs record
+| Layer | Trigger | Typical outcome | Acknowledge only? |
+|-------|---------|-------------------|-------------------|
+| **0 — Routing** | `pendingCustomLabel`, greeting, no behavior yet | Welcome, invite story, or **behavior clarifying question** (“Would *wandering* fit?”) | Yes for pure greeting (`shouldDeferGapNudge`) |
+| **1 — Heuristics** | Every utterance | Pre-fill draft before LLMs run | N/A (silent) |
+| **2 — Companion LLM** | LLM configured | Acknowledge + **one gap question** per prompt contract | Only if model ignores contract |
+| **2 — Scribe LLM** | LLM configured | Silent `draft_updates` | N/A |
+| **3 — Step resolution** | After merge | `confirm` / `done` / gap step | N/A |
+| **4 — finalizeCompanionReply** | Special user intents | Draft panel pointer; save invite at confirm | Mirror/wrap-up paths |
+| **5 — Gap backstop** | Reply has no `?` and gap ≠ review | Append brief gap question | **No** — adds question companion omitted |
+
+#### When the companion acknowledges vs asks
+
+| Situation | Behavior | Mechanism |
+|-----------|----------|-----------|
+| Short greeting at start | Acknowledge only; defer gap question | `shouldDeferGapNudge` |
+| User shares emotional story | Acknowledge first, then **one gap question** | Companion prompt + `ensureCompanionGapNudge` |
+| User dumps many details at once | Acknowledge; scribe fills multiple fields; companion **does not re-ask** captured gaps | `describeConversationState` “Already understood” |
+| Behavior unclear | **Clarifying question** (label fit?), not gap question | `processLumaTurn` / `needsCustomBehavior` |
+| User asks “what do you have?” | Point to draft panel; **no** field readback | `userAskingForDraftSummary` |
+| All gaps filled | Invite save; show `LumaFinalLogEditor` | `primaryGap === review` |
+| LLM only empathizes, no question | Acknowledge + **appended gap question** | `ensureCompanionGapNudge` |
+| Heuristic fallback (no API) | Reflect + gap follow-up in one message | `generateNaturalFollowUp` + `ensureCompanionGapNudge` |
+
+**Design intent:** The companion is **proactive** — it leads the caregiver through gaps. It is not waiting for “what else do you need?” Clarifying questions (behavior label, custom behavior confirm) are a separate branch from gap questions (timing, intensity, possible triggers, strategies).
+
+### 4.5 Trust boundary: draft vs record
 
 | Stage | Storage | User action |
 |-------|---------|-------------|
-| In conversation | React state + `localStorage` auto-save (3s debounce, 30s interval) | Edit via chat; panel shows live capture |
-| Review | `LumaFinalLogEditor` replaces read-only panel | Edit any field directly |
+| In conversation | React state + `localStorage` auto-save (3s debounce, 30s interval) | Edit via chat or **editable draft panel**; scribe + companion update live |
+| Review | `LumaFinalLogEditor` (full review + Save / Keep talking) | Edit any field directly |
 | Commit | SQLite `behavior_logs` | **Save to log** or explicit chat “yes” only |
 
 `submitLumaLogAction` → same payload shape as coach flow (behavior, severity, episode fields, triggers, strategies, outcome, notes, recommendations).
 
 **Not auto-written:** Scribe `ready_to_save` alone does not persist; prevents silent incorrect clinical rows.
 
-### 4.4 Mid-conversation recommendations
+### 4.6 Mid-conversation recommendations
 
 `lumaReflectSuggestions.ts` surfaces rule-based “reflect” cards during Luma chat when triggers/strategies are known — same recommendation pool as coach wizard, without breaking conversational flow.
 
-### 4.5 Session persistence (`lumaSessionStorage.ts`)
+### 4.7 Session persistence (`lumaSessionStorage.ts`)
 
 ```typescript
 luma-session-v1 → { draft, messages, step, keepTalkingDismissed, savedAt }
@@ -175,13 +327,13 @@ luma-session-v1 → { draft, messages, step, keepTalkingDismissed, savedAt }
 - **Save:** debounced on draft/messages/step changes
 - **Clear:** on successful `submitLumaLogAction`
 
-### 4.6 Extraction safeguards
+### 4.8 Extraction safeguards
 
 - **Time vs trigger:** Time-category chips (Morning, Sundowning, …) excluded from trigger hypotheses; sleep → FATIGUE heuristic
 - **Custom behaviors:** Unknown behavior → propose label → `createCustomBehaviorAction` → `CUSTOM_*` code
 - **Inference flags:** `triggers_answered`, `strategies_answered`, `outcome_answered` inferred when data present
 
-### 4.7 Voice pipeline
+### 4.9 Voice pipeline
 
 ```
 STT: useSpeechRecognition → continuous, interim preview, Done to submit

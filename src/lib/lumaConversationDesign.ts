@@ -3,7 +3,7 @@
  */
 
 import { DID_NOT_TRY_CODE } from "./coachFlowCatalog";
-import type { LumaDraft } from "./lumaEngine";
+import type { LumaDraft, LumaStep } from "./lumaEngine";
 
 export type ConversationGap =
   | "story"
@@ -89,8 +89,8 @@ export function describeConversationState(draft: LumaDraft): string {
     have.push(`intensity: ${word}`);
   } else need.push("how intense it felt");
 
-  if (draft.triggers_answered) have.push("possible contributors discussed");
-  else need.push("anything that might have set it off (optional — can skip)");
+  if (draft.triggers_answered) have.push("possible triggers discussed");
+  else need.push("possible triggers (optional — can skip)");
 
   if (draft.strategies_answered) have.push("what they tried");
   else need.push("whether they tried anything to help");
@@ -142,7 +142,7 @@ export function generateNaturalFollowUp(draft: LumaDraft, userText: string): str
         : `${reflect}How intense was it for you when it happened?`;
 
     case "context":
-      return `${reflect}Do you have any sense of what might have been going on underneath — noise, hunger, a change in routine, or something else? It's okay if you're not sure.`;
+      return `${reflect}Do you have a sense of what might have led to it — a change in routine, hunger, noise, or something else? We can reflect on it together, and it's okay if you're not sure.`;
 
     case "response":
       if (!draft.strategies_answered) {
@@ -175,7 +175,7 @@ export function buildWarmRecap(draft: LumaDraft): string {
   }
 
   if (draft.trigger_hypotheses.length > 0 || draft.trigger_detail) {
-    lines.push("You shared some thoughts on what might have contributed.");
+    lines.push("You shared some possible triggers.");
   }
 
   const tried =
@@ -206,7 +206,7 @@ export function buildDraftMirror(draft: LumaDraft): string {
     );
   }
   if (draft.trigger_hypotheses.length > 0 || draft.trigger_detail) {
-    parts.push("possible contributors");
+    parts.push("possible triggers");
   }
   if (draft.strategies_tried.length > 0 && draft.strategies_tried[0] !== DID_NOT_TRY_CODE) {
     parts.push("what you tried");
@@ -232,9 +232,9 @@ export function buildDraftOpenItems(draft: LumaDraft): string[] {
     case "intensity":
       return ["how intense it felt"];
     case "context":
-      return ["what might have contributed (optional)"];
+      return ["possible triggers (optional)"];
     case "response":
-      return ["whether you tried anything to help"];
+      return ["strategies you tried"];
     default:
       return [];
   }
@@ -267,23 +267,107 @@ export function userSignalsWrappingUp(text: string): boolean {
   );
 }
 
-/** Soft nudge for the companion — human language, not form fields. */
-export function buildCompanionWeaveHint(draft: LumaDraft): string {
-  const gap = primaryGap(draft);
+/** Question only — for backstop when the companion already validated feelings. */
+export function buildCompanionGapQuestionBrief(draft: LumaDraft): string {
+  const d = applyDraftInference(draft);
+  const gap = primaryGap(d);
+  const moment = behaviorPhrase(d);
+
   switch (gap) {
     case "story":
-      return "If they seem ready to describe a specific observation, gently invite them — no rush.";
+      return "What's been happening? You can start anywhere.";
     case "timing":
-      return "If the conversation feels right, you may wonder when this happened — recent or a little while ago — woven into your reply, not as a separate form question.";
+      return moment
+        ? `When did the ${moment.toLowerCase()} happen — just now, earlier today, or a few days ago?`
+        : "When did this happen — was it recent, or a little while back?";
     case "intensity":
-      return "If they're ready to continue, you might gently sense how hard it felt — in their words, not as a scale.";
+      return moment
+        ? `How hard was the ${moment.toLowerCase()} for you — manageable, pretty distressing, or really intense?`
+        : "How intense was it for you when it happened?";
     case "context":
-      return "If they're open to it, you could wonder what might have been going on underneath — or stay with feelings if they're still processing.";
+      return "Do you have a sense of what might have led to it? We can reflect on it together — it's okay if you're not sure.";
     case "response":
-      return "If it fits naturally, you might ask whether they tried anything to help — or were mostly just getting through it.";
+      if (!d.strategies_answered) {
+        return "Did you try anything to help when it was happening — or were you mostly just getting through it?";
+      }
+      return "Did any of that seem to help, even a little — or not really?";
     case "review":
-      return "One short sentence: invite them to check the draft log below and say yes to save. Do not recap log fields in chat.";
+      return "If your draft log below looks right, say yes to save — or tell me what to change.";
   }
+}
+
+/** Warm, concrete question for the companion to ask about the current gap. */
+export function buildCompanionGapQuestion(draft: LumaDraft): string {
+  const d = applyDraftInference(draft);
+  const gap = primaryGap(d);
+  const moment = behaviorPhrase(d);
+
+  switch (gap) {
+    case "story":
+      return "What's been happening? You can start anywhere — I'll follow along.";
+    case "timing":
+      return buildCompanionGapQuestionBrief(d);
+    case "intensity":
+      return moment
+        ? `That must have been a lot. ${buildCompanionGapQuestionBrief(d)}`
+        : `That must have been hard. ${buildCompanionGapQuestionBrief(d)}`;
+    case "context":
+      return "Do you have a sense of what might have led to it — a change in routine, hunger, noise, or something else? We can reflect on it together, and it's okay if you're not sure.";
+    case "response":
+      return buildCompanionGapQuestionBrief(d);
+    case "review":
+      return buildCompanionGapQuestionBrief(d);
+  }
+}
+
+/** Shared brief for companion + scribe — same capture picture, companion leads the next question. */
+export function buildCompanionScribeBrief(draft: LumaDraft): string {
+  const d = applyDraftInference(draft);
+  const gap = primaryGap(d);
+
+  return `[Log capture status — shared with your scribe]
+${describeConversationState(d)}
+
+Current priority gap: ${gap}
+After you acknowledge what they shared, ask ONE warm question about this gap (adapt naturally):
+"${buildCompanionGapQuestion(d)}"
+
+The scribe fills the draft log from their answer. Caregivers rarely ask what is missing — you lead the conversation there.`;
+}
+
+function shouldDeferGapNudge(userText: string, gap: ConversationGap): boolean {
+  if (gap !== "story") return false;
+  const n = userText.trim().toLowerCase();
+  return (
+    n.length < 24 &&
+    /^(hi|hello|hey|thanks|thank you|good morning|good evening|how are you)\b/.test(n)
+  );
+}
+
+/** Ensure the companion ends with a gap question when the LLM only validated feelings. */
+export function ensureCompanionGapNudge(
+  reply: string,
+  draft: LumaDraft,
+  userText: string,
+  step: LumaStep | "confirm" | "done"
+): string {
+  if (step === "done" || step === "confirm") return reply;
+  if (userAskingForDraftSummary(userText)) return reply;
+
+  const d = applyDraftInference(draft);
+  const gap = primaryGap(d);
+  if (gap === "review") return reply;
+  if (shouldDeferGapNudge(userText, gap)) return reply;
+  if (/\?/.test(reply)) return reply;
+
+  const question = buildCompanionGapQuestionBrief(d);
+  const trimmed = reply.trim();
+  return trimmed ? `${trimmed}\n\n${question}` : question;
+}
+
+/** @deprecated Use buildCompanionScribeBrief — kept for reference in docs. */
+export function buildCompanionWeaveHint(draft: LumaDraft): string {
+  return buildCompanionGapQuestion(applyDraftInference(draft));
 }
 
 export function userConfirmedSave(text: string): boolean {

@@ -12,7 +12,6 @@ import {
 } from "@/src/lib/lumaEngine";
 import {
   applyDraftInference,
-  buildDraftOpenItems,
   draftHasContent,
   primaryGap,
   userAskingForDraftSummary,
@@ -23,12 +22,7 @@ import {
   getLumaReflectSuggestions,
   shouldShowLumaReflectSuggestions,
 } from "@/src/lib/lumaReflectSuggestions";
-import {
-  DID_NOT_TRY_CODE,
-  getCoachFlowTriggerLabel,
-  mapCoachOutcomeToDb,
-  strategyCodesToLabels,
-} from "@/src/lib/coachFlowCatalog";
+import { DID_NOT_TRY_CODE, mapCoachOutcomeToDb, strategyCodesToLabels } from "@/src/lib/coachFlowCatalog";
 import {
   createCustomBehaviorAction,
   getLumaLlmStatusAction,
@@ -45,11 +39,11 @@ import {
   storeLumaVoice,
   useSpeechRecognition,
 } from "./useSpeechRecognition";
+import LumaDraftPanel from "./LumaDraftPanel";
 import LumaFinalLogEditor from "./LumaFinalLogEditor";
 import LumaSuggestionPanel from "./LumaSuggestionPanel";
 import {
   clearLumaSession,
-  formatLumaSessionSavedAt,
   loadLumaSession,
   saveLumaSession,
 } from "@/src/lib/lumaSessionStorage";
@@ -499,8 +493,14 @@ export default function LumaCompanion({
           <LumaDraftPanel
             draft={draft}
             open={draftOpen}
+            saving={saving}
+            customBehaviors={customBehaviors}
             lastAutoSavedAt={lastAutoSavedAt}
             onToggle={() => setDraftOpen((v) => !v)}
+            onDraftChange={(next) => {
+              draftRef.current = next;
+              setDraft(next);
+            }}
           />
           {showSuggestions && (
             <LumaSuggestionPanel
@@ -611,112 +611,3 @@ function LumaMessageBody({ text }: { text: string }) {
   );
 }
 
-function LumaDraftPanel({
-  draft,
-  open,
-  lastAutoSavedAt,
-  onToggle,
-}: {
-  draft: LumaDraft;
-  open: boolean;
-  lastAutoSavedAt: string | null;
-  onToggle: () => void;
-}) {
-  const items: { label: string; value: string }[] = [];
-  if (draft.behavior_label || draft.behavior_code) {
-    items.push({ label: "Observation", value: draft.behavior_label ?? draft.behavior_code ?? "" });
-  }
-  if (draft.episode_recency) {
-    items.push({ label: "When", value: draft.episode_recency.replace(/_/g, " ") });
-  }
-  if (draft.episode_time_of_day) {
-    items.push({ label: "Time of day", value: draft.episode_time_of_day.replace(/_/g, " ") });
-  }
-  if (draft.severity) {
-    items.push({
-      label: "Intensity",
-      value:
-        draft.severity === 1 ? "Mild" : draft.severity === 3 ? "Very hard" : "Moderate",
-    });
-  }
-  if (draft.trigger_hypotheses.length > 0 || draft.trigger_detail) {
-    const TIME_TRIGGERS = new Set(["MORNING", "AFTERNOON", "EVENING", "NIGHTTIME", "SUNDOWNING"]);
-    const triggerLabels = draft.trigger_hypotheses
-      .filter((c) => !TIME_TRIGGERS.has(c))
-      .map((c) => getCoachFlowTriggerLabel(c));
-    const parts = [...triggerLabels];
-    if (draft.trigger_detail?.trim()) parts.push(draft.trigger_detail.trim());
-    items.push({
-      label: "Contributors",
-      value: parts.length > 0 ? parts.join("; ") : "—",
-    });
-  }
-  if (draft.strategies_tried.length > 0 && draft.strategies_tried[0] !== DID_NOT_TRY_CODE) {
-    const labels = strategyCodesToLabels(draft.strategies_tried);
-    items.push({
-      label: "What you tried",
-      value: labels.length > 0 ? labels.join(", ") : "—",
-    });
-  }
-  if (draft.notes?.trim()) {
-    const note = draft.notes.trim();
-    items.push({
-      label: "Notes",
-      value: note.length > 80 ? `${note.slice(0, 80)}…` : note,
-    });
-  }
-
-  const openItems = draftHasContent(draft) ? buildDraftOpenItems(draft) : [];
-  const countLabel = items.length === 0 ? "Empty" : `${items.length} field${items.length === 1 ? "" : "s"}`;
-
-  return (
-    <div className={`luma-companion__summary${open ? " luma-companion__summary--open" : ""}`}>
-      <button
-        type="button"
-        className="luma-companion__summary-toggle"
-        onClick={onToggle}
-        aria-expanded={open}
-      >
-        <span className="luma-companion__summary-label">Your draft log</span>
-        <span className="luma-companion__summary-badge">{countLabel}</span>
-        <span className="luma-companion__summary-chevron" aria-hidden>
-          {open ? "▾" : "▸"}
-        </span>
-      </button>
-      {open && (
-        <div className="luma-companion__summary-body">
-          {items.length === 0 ? (
-            <p className="luma-companion__summary-empty">
-              This fills in as you share — watch it update while we talk.
-            </p>
-          ) : (
-            <dl className="luma-companion__summary-dl">
-              {items.map((item) => (
-                <div key={item.label} className="luma-companion__summary-row">
-                  <dt>{item.label}</dt>
-                  <dd>{item.value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {openItems.length > 0 && (
-            <p className="luma-companion__summary-open">
-              Still open if you want to add: {openItems.join(", ")}
-            </p>
-          )}
-          {primaryGap(draft) === "review" && (
-            <p className="luma-companion__summary-ready">
-              Ready to save — say <strong>yes</strong> in chat when this looks right.
-            </p>
-          )}
-          {lastAutoSavedAt && (
-            <p className="luma-companion__autosave-hint">
-              Auto-saved locally at {formatLumaSessionSavedAt(lastAutoSavedAt)} — you can keep
-              editing.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}

@@ -81,15 +81,19 @@ We did not replace the clarity log. We **layered** conversation on top of it, co
 
 ### MVP 3 — Companion + Scribe (two agents, one draft)
 
-**Hypothesis:** Split emotional labor from data extraction.
+**Hypothesis:** Split emotional labor from data extraction — and make them **partners**, not silos.
 
 | Agent | Job | User sees |
 |-------|-----|-----------|
-| **Companion** (stronger model) | Listen, reflect, one gentle follow-up | Warm plain text only |
-| **Scribe** (lighter model) | Merge utterance → field updates | Silent parallel extraction |
+| **Companion** (stronger model) | Listen, reflect, **lead with one gap question** after acknowledging | Warm plain text only |
+| **Scribe** (lighter model) | Capture answers into `draft_updates` from the same transcript | Silent parallel extraction |
 | **Heuristics** | Always-on backfill + offline fallback | Same draft, no API required |
 
-**Still not enough:** Invisible capture, occasional log readback in chat, voice UX issues (mic cut-off, robotic TTS).
+**Partnership contract:** Both agents read the same **log capture status** (`buildCompanionScribeBrief` / `describeConversationState`). The companion asks; the scribe writes. Caregivers do not ask “what else do you need?” — the companion proactively moves through narrative gaps.
+
+**Still not enough (MVP 3 initial):** Passive “weave in if it fits” nudges; invisible capture; occasional log readback in chat; voice UX issues (mic cut-off, robotic TTS).
+
+**Current capture layer fixes:** Editable draft panel during chat; proactive gap nudges + `ensureCompanionGapNudge` backstop; shared companion–scribe brief.
 
 ---
 
@@ -98,13 +102,14 @@ We did not replace the clarity log. We **layered** conversation on top of it, co
 **Hypothesis:** The product must (1) feel emotionally safe and (2) produce a defensible record — then (3) turn that record into **actionable insight** per audience.
 
 **Capture layer (trust loop):**
-1. **Live draft panel** — companion points to on-screen capture, never reads fields aloud
-2. **Narrative gaps** — story → timing → intensity → context → response → review
-3. **Editable final log** — user fixes scribe errors before commit
-4. **Explicit save** — nothing writes to DB until caregiver confirms
-5. **Local auto-save** — session survives refresh; distinct from clinical record
-6. **Voice UX** — continuous mic + manual Done; OpenAI TTS personas
-7. **Mid-conversation reflect cards** — rule-based suggestions without breaking chat flow
+1. **Live editable draft panel** — companion points to on-screen capture, never reads fields aloud; user can correct anytime
+2. **Narrative gaps + proactive companion** — story → timing → intensity → context → response → review; companion **leads** one gap per turn after validating feelings
+3. **Companion–Scribe partnership** — shared capture status; companion asks, scribe extracts; gap backstop if LLM only empathizes
+4. **Editable final log** — user fixes scribe errors before commit
+5. **Explicit save** — nothing writes to DB until caregiver confirms
+6. **Local auto-save** — session survives refresh; distinct from clinical record
+7. **Voice UX** — continuous mic + manual Done; OpenAI TTS personas
+8. **Mid-conversation reflect cards** — rule-based suggestions without breaking chat flow
 
 **Insight layer (Synopsis — `/report`):**
 
@@ -149,35 +154,93 @@ We did not replace the clarity log. We **layered** conversation on top of it, co
 
 ## Product architecture (conceptual)
 
-```
-Caregiver speaks/types
-        │
-        ▼
-┌───────────────────┐     ┌───────────────────┐
-│ Companion (LLM)   │     │ Scribe (LLM)      │
-│ Empathy, pacing   │     │ JSON draft_updates│
-│ Plain text only   │     │ Silent extraction │
-└─────────┬─────────┘     └─────────┬─────────┘
-          │                         │
-          └──────────┬──────────────┘
-                     ▼
-            Heuristic layer (always)
-            + narrative gap logic
-                     │
-                     ▼
-         Live draft panel → Final log editor
-         (local auto-save)   (user edits + Save)
-                     │
-                     ▼
-              behavior_logs (SQLite)
-                     │
-         ┌───────────┴───────────┐
-         ▼                       ▼
-   Today · History        Synopsis (dual tab)
-                    Caregiver dashboard · Clinician summary + PDF
+### Turn loop — one caregiver message
+
+```mermaid
+sequenceDiagram
+  participant CG as Caregiver
+  participant UI as LumaCompanion + draft panel
+  participant H as Heuristics
+  participant C as Companion LLM
+  participant S as Scribe LLM
+  participant D as LumaDraft
+
+  CG->>UI: speaks/types
+  UI->>H: userText + draft
+  H->>D: workingDraft (pre-filled hints)
+
+  par Parallel agents
+    UI->>C: history + buildCompanionScribeBrief
+    C-->>UI: plain text reply
+    UI->>S: history + describeConversationState
+    S-->>UI: draft_updates JSON
+  end
+
+  UI->>D: mergeDraft + applyDraftInference
+  UI->>UI: finalizeCompanionReply + ensureCompanionGapNudge
+  UI->>CG: acknowledgment + gap question (or save invite)
+  UI->>UI: debounced localStorage auto-save
 ```
 
-**Design principle:** Conversation follows *story gaps*, not wizard field order. Reporting follows *audience intent*, not one-size-fits-all dashboards.
+### Companion–Scribe partnership
+
+```mermaid
+flowchart TB
+  subgraph Contract["Shared capture contract"]
+    PG[primaryGap — one priority gap]
+    ST[describeConversationState — have vs need]
+    BRIEF[buildCompanionScribeBrief]
+    PG --> BRIEF
+    ST --> BRIEF
+  end
+
+  BRIEF --> Companion
+  BRIEF --> Scribe
+
+  Companion -->|warm gap question| CG[Caregiver]
+  CG -->|answer in natural language| Scribe
+  Scribe -->|draft_updates| Draft[Live draft panel]
+  Draft --> PG
+
+  Heur[Heuristic layer always] --> Draft
+  Draft -->|manual edit| PG
+  Draft -->|review + Save| DB[(behavior_logs)]
+```
+
+**Design principle:** Conversation follows *story gaps*, not wizard field order. The companion **leads**; the scribe **captures**. Reporting follows *audience intent*, not one-size-fits-all dashboards.
+
+### Companion decision layers (what triggers which behavior)
+
+```mermaid
+flowchart TD
+  IN[Incoming user message] --> R0{Custom behavior pending?}
+  R0 -->|yes| B1[Clarify label\nWould X fit?]
+  R0 -->|no| R1{Pure greeting\nand story gap?}
+  R1 -->|yes| A1[Acknowledge only\nDefer gap question]
+  R1 -->|no| R2{All gaps filled?}
+  R2 -->|yes review| A2[Invite save\npoint to draft panel]
+  R2 -->|no| R3[Acknowledge + ONE gap question]
+
+  R3 --> LLM[Companion LLM tries first]
+  LLM --> Q{Reply contains ?}
+  Q -->|no| BACK[ensureCompanionGapNudge\nappend gap question]
+  Q -->|yes| SEND[Send reply]
+
+  R3 --> MANY{User gave many details?}
+  MANY -->|yes| ABSORB[Scribe fills fields\nCompanion skips re-ask]
+```
+
+| Layer | What triggers it | Companion behavior |
+|-------|------------------|-------------------|
+| **Greeting guard** | Short hi/thanks at start | Acknowledge only — no survey yet |
+| **Behavior clarify** | Story described but no `behavior_code` | Clarifying question (*“Would wandering fit?”*), not timing/triggers |
+| **Gap lead (default)** | Any gap open after acknowledgment | Ask **one** question for `primaryGap` — timing, intensity, possible triggers, strategies, outcome |
+| **Absorb mode** | Rich utterance; scribe captures multiple fields | Reflect what you heard; **don’t re-ask** filled gaps |
+| **Draft mirror** | User asks what’s captured | Point to draft panel — never read fields aloud |
+| **Save invite** | `review` gap or confirm step | Short save prompt; full editor on screen |
+| **Gap backstop** | LLM empathizes without `?` | Append `buildCompanionGapQuestionBrief` |
+
+**PM insight:** Users will not ask “what else do you need?” The product must treat gap questions as **default companionship**, not optional follow-ups after the user prompts.
 
 ---
 
@@ -187,7 +250,7 @@ Caregiver speaks/types
 Never fork data models. Luma, coach, and quick log all write `behavior_logs`. MVP 1 proved structured fields power Synopsis. MVP 2 failed on *capture UX*, not schema.
 
 ### 2. Companion + Scribe (not one prompt)
-Two parallel model calls after single-agent failure. Empathy and JSON compliance compete in one context window.
+Two parallel model calls after single-agent failure. Empathy and JSON compliance compete in one context window. **Partnership:** shared `buildCompanionScribeBrief`; companion leads gap questions; scribe captures answers — not two silos on the same transcript. After validating feelings, companion **must** ask about the current `primaryGap`, with `ensureCompanionGapNudge` as backstop — caregivers will not ask “what else do you need?”
 
 ### 3. Show the draft, don’t read it aloud
 Collapsible **Your draft log** panel. Invisible extraction caused “what did you get?” and duplicate survey readback.
@@ -232,6 +295,7 @@ Debounced `localStorage`; clear on commit. Draft resilience ≠ record integrity
 | Invisible extraction | Live draft panel; auto-expand on capture | Make AI legible without narrating JSON |
 | One model, two jobs | Companion + Scribe split | Decompose AI workloads by success metric |
 | Felt like clinical survey | Narrative gaps; forbid form language in prompts | Schema is backend; story is frontend |
+| Companion too passive | Shared scribe brief + proactive gap questions + backstop | Users won't ask what's missing — product must lead |
 | “Morning” as trigger not time | Exclude Time-category from trigger extraction | Domain taxonomy errors erode clinician trust |
 | Scribe mis-extraction | Editable final log before save | Model confidence ≠ user consent |
 
@@ -259,13 +323,29 @@ Debounced `localStorage`; clear on commit. Draft resilience ≠ record integrity
 **Bad (survey mode):**  
 “What was the episode recency? Select mild, moderate, or severe.”
 
-**Good (narrative mode):**  
+**Bad (passive companion):**  
+Caregiver shares a hard story. Luma: *“That sounds really hard.”* (stops — waits for user to ask what else is needed)
+
+**Good (narrative mode + partnership):**  
 Caregiver: *“She wandered after lunch — hadn’t slept, got scared when the neighbor knocked.”*  
-Luma: Short acknowledgment + one gentle follow-up if intensity or outcome still missing.  
-Draft panel: Wandering · earlier today · afternoon · fatigue · fear · …  
+Luma: *“That sounds frightening. When did that happen — just now, or earlier today?”* (acknowledge + **one gap question**)  
+Scribe (silent): wandering · earlier today · afternoon · fatigue · fear · …  
+Draft panel updates live; caregiver can edit fields directly.  
 Review: Caregiver edits, then saves.
 
 **Gap sequence:** `story → timing → intensity → context → response → review`
+
+**Example turn outcomes by layer:**
+
+| User says | Gap | Companion does |
+|-----------|-----|----------------|
+| “Hi” | story | Welcome only — defer gap question |
+| “She kept pacing and yelling at dinner” | story → timing | Reflect + ask when / part of day |
+| Long story with timing + triggers in one breath | jumps toward intensity/response | Reflect; scribe absorbs; ask **next** open gap only |
+| “Would wandering fit?” pending | story (clarify) | **Clarifying** behavior label — not a gap question |
+| All fields captured | review | Invite save; show final editor |
+
+See **Product architecture → Companion decision layers** above for full decision tree.
 
 ---
 
@@ -339,7 +419,7 @@ Labeled **Sample report** at banner, badge, and header. PDF export gated until r
 
 ## Copy-ready portfolio blurb
 
-> I evolved **Luma** through four product generations: a rule-based **clarity log** → failed single-agent chat (robotic, invisible capture) → **Companion + Scribe** with a trust loop (live draft, narrative gaps, editable review, explicit save, voice) → **dual-audience Synopsis** that turns the same observations into an actionable caregiver dashboard and an observational clinician summary with PDF export. The north star: help dementia caregivers capture what happened and what worked — so they regain agency over avoidable behaviors and arrive at neurology visits with structured history — without the product feeling like paperwork. I made explicit healthcare scope, trust, and activation tradeoffs throughout.
+> I evolved **Luma** through four product generations: a rule-based **clarity log** → failed single-agent chat (robotic, invisible capture) → **Companion + Scribe partnership** (shared capture contract, proactive gap leading, live editable draft, explicit save, voice) → **dual-audience Synopsis** that turns the same observations into an actionable caregiver dashboard and an observational clinician summary with PDF export. The north star: help dementia caregivers capture what happened and what worked — so they regain agency over avoidable behaviors and arrive at neurology visits with structured history — without the product feeling like paperwork. I made explicit healthcare scope, trust, and activation tradeoffs throughout.
 
 ---
 
