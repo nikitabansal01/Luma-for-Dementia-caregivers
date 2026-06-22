@@ -215,10 +215,10 @@
     @apply inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-care-sage bg-white/70 px-4 py-3 text-sm font-semibold text-care-forest transition-colors hover:border-care-olive/50 hover:bg-care-mint/20 sm:w-auto;
   }
 
-  /* Synopsis sample CTA panels (banner, badge, footer) */
+  /* Synopsis sample CTA panels (banner, footer) */
   .synopsis-sample-banner,
   .synopsis-sample-footer {
-    @apply flex flex-col gap-5 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:flex-row sm:items-start sm:justify-between sm:gap-8 sm:p-6;
+    @apply flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-care-mint bg-care-mint/25 p-5 shadow-card sm:gap-8 sm:p-6;
   }
   .synopsis-sample-banner__content,
   .synopsis-sample-footer__content {
@@ -237,25 +237,10 @@
   }
   .synopsis-sample-banner__cta,
   .synopsis-sample-footer__cta {
-    @apply inline-flex w-full shrink-0 items-center justify-center self-start rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive sm:w-auto;
+    @apply ml-auto inline-flex shrink-0 items-center justify-center rounded-lg bg-care-forest px-5 py-2.5 text-sm font-semibold leading-normal text-white no-underline transition-colors hover:bg-care-olive;
   }
   .synopsis-report-wrap--sample {
     @apply space-y-4;
-  }
-  .synopsis-sample-badge {
-    @apply sticky top-3 z-10 flex flex-col gap-3 rounded-xl border border-care-mint bg-care-mint/95 px-4 py-3.5 shadow-card backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6;
-  }
-  .synopsis-sample-badge__content {
-    @apply min-w-0 flex-1 space-y-2 sm:space-y-0;
-  }
-  .synopsis-sample-badge__label {
-    @apply inline-flex w-fit rounded-md bg-care-forest px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-white;
-  }
-  .synopsis-sample-badge__text {
-    @apply text-sm leading-relaxed text-care-bark sm:mt-1.5;
-  }
-  .synopsis-sample-badge__cta {
-    @apply inline-flex w-full shrink-0 items-center justify-center self-start rounded-lg border border-care-forest/15 bg-white px-4 py-2 text-sm font-semibold leading-normal text-care-forest no-underline transition-colors hover:border-care-forest/30 hover:bg-care-cream/80 sm:w-auto;
   }
   .synopsis-report-header {
     @apply border-b border-care-sage/80 pb-4;

@@ -180,20 +180,6 @@ export default function ReportPage() {
         <div
           className={`synopsis-report-wrap${isSample ? " synopsis-report-wrap--sample" : ""}`}
         >
-          {isSample && (
-            <div className="synopsis-sample-badge no-print" role="status" aria-live="polite">
-              <div className="synopsis-sample-badge__content">
-                <span className="synopsis-sample-badge__label">{SYNOPSIS_SAMPLE_LABEL}</span>
-                <p className="synopsis-sample-badge__text">
-                  Example data only — log care observations to see your own patterns
-                </p>
-              </div>
-              <Link href="/" className="synopsis-sample-badge__cta">
-                Start logging →
-              </Link>
-            </div>
-          )}
-
           {activeTab === "caregiver" ? (
             <CaregiverPatternsView
               data={displayData}
