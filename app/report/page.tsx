@@ -160,7 +160,7 @@ export default function ReportPage() {
           </div>
           <div className="synopsis-sample-banner__cta-wrap">
             <Link href="/" className="synopsis-sample-banner__cta">
-              Start logging →
+              Start logging
             </Link>
           </div>
         </div>
