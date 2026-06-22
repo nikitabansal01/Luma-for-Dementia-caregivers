@@ -8,10 +8,11 @@ import {
   updateLogOutcome,
   generateReport,
   getPastAttemptsForBehavior,
+  getSynopsisLogPreviews,
   saveCareProfile,
   skipOnboarding,
 } from "@/src/lib/repo";
-import type { ReportData, CareRecipient } from "@/src/lib/repo";
+import type { ReportData, CareRecipient, SynopsisLogPreview } from "@/src/lib/repo";
 import { saveCoachRules, getRecommendations } from "@/src/lib/coach";
 import { encodeCoachOutcomeDetail } from "@/src/lib/logUtils";
 import type { CoachOutcomeUi } from "@/src/lib/coachFlowCatalog";
@@ -32,6 +33,12 @@ import {
   type LumaVoiceId,
 } from "@/src/lib/lumaTts";
 import { z } from "zod";
+import {
+  buildCareContextLine,
+  getCaregiverRelationshipSynopsisLabel,
+  getDementiaStageLabel,
+  getLivingSituationLabel,
+} from "@/src/lib/careProfile";
 
 const outcomeEnum = z.enum(["better", "same", "worse", "unknown"]);
 
@@ -184,6 +191,38 @@ export async function updateLogOutcomeAction(
 
 export async function generateReportAction(days: number): Promise<ReportData> {
   return generateReport(days);
+}
+
+export async function getSynopsisLogPreviewsAction(
+  days: number,
+  limit = 5
+): Promise<SynopsisLogPreview[]> {
+  return getSynopsisLogPreviews(days, limit);
+}
+
+export async function getSynopsisProfileAction(): Promise<{
+  fullContext: string | null;
+  caregiverLine: string | null;
+  caredForLine: string | null;
+}> {
+  const recipient = getOrCreateDefaultRecipient();
+  const fullContext = buildCareContextLine(recipient);
+  const caregiverLine = getCaregiverRelationshipSynopsisLabel(recipient.caregiver_relationship);
+
+  const caredForParts: string[] = [];
+  if (recipient.name.trim() && recipient.name !== "Default") {
+    caredForParts.push(recipient.name.trim());
+  }
+  const stageLabel = getDementiaStageLabel(recipient.stage);
+  if (stageLabel) caredForParts.push(stageLabel);
+  const livingLabel = getLivingSituationLabel(recipient.living_situation);
+  if (livingLabel) caredForParts.push(livingLabel.toLowerCase());
+
+  return {
+    fullContext,
+    caregiverLine: caregiverLine ? `${caregiverLine} caregiver` : null,
+    caredForLine: caredForParts.length > 0 ? caredForParts.join(", ") : null,
+  };
 }
 
 export async function saveCoachRulesAction(

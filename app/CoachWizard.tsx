@@ -277,7 +277,7 @@ export default function CoachWizard({ onClose }: CoachWizardProps) {
               <div>
                 <h2 className="coach-flow-section-title">What happened</h2>
                 <p className="coach-flow-section-lead">
-                  Capture the basics while the moment is still fresh.
+                  Capture the basics while the observation is still fresh.
                 </p>
               </div>
 
@@ -388,7 +388,7 @@ export default function CoachWizard({ onClose }: CoachWizardProps) {
               <div>
                 <h2 className="coach-flow-section-title">What did you try?</h2>
                 <p className="coach-flow-section-lead">
-                  Record what you already attempted in the moment — not what helped yet.
+                  Record what you already attempted when it happened — not what helped yet.
                 </p>
               </div>
 

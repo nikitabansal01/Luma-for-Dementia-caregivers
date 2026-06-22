@@ -161,7 +161,7 @@ function buildCompanionSystemPrompt(draft: LumaDraft, step: LumaStep | "confirm"
   const reviewBlock =
     gap === "review" || step === "confirm"
       ? `\n## Required now\n${weaveHint}`
-      : `\n## Gentle weave-in\n${weaveHint}\nOnly if it fits the moment — never interrupt emotional processing. After validating feelings, you may weave in ONE natural question when they seem ready to continue sharing.`;
+      : `\n## Gentle weave-in\n${weaveHint}\nOnly if it fits the conversation — never interrupt emotional processing. After validating feelings, you may weave in ONE natural question when they seem ready to continue sharing.`;
 
   const transparencyBlock = draftHasContent(draft)
     ? `\n## Draft transparency\nA draft care log panel is visible on screen and updates as you talk. Do NOT read out the full log in chat — if they ask what's captured, briefly point them to the draft log panel below (one sentence). They can see fields fill in live.`

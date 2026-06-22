@@ -524,7 +524,7 @@ export function processLumaTurn(
           lumaMessages: [
             isGreetingOrSmallTalk(userText)
               ? /\b(caregiver|carer)\b/.test(normalize(userText))
-                ? "Thank you for being here — caregiving asks a lot of you. When a moment comes to mind, tell me about it. We'll take it one piece at a time."
+                ? "Thank you for being here — caregiving asks a lot of you. When an observation comes to mind, tell me about it. We'll take it one piece at a time."
                 : "Hi — I'm glad you're here. There's no rush. What's been going on?"
               : generateNaturalFollowUp(nextDraft, userText),
           ],

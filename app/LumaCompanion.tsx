@@ -246,7 +246,7 @@ export default function LumaCompanion({
       if (result.success) {
         clearLumaSession();
         setLastAutoSavedAt(null);
-        appendLuma(["Saved. Thank you for taking a moment to log this — it really helps over time."]);
+        appendLuma(["Saved. Thank you for logging this observation — it really helps over time."]);
         router.refresh();
         setTimeout(onClose, 1500);
       } else {
@@ -624,7 +624,7 @@ function LumaDraftPanel({
 }) {
   const items: { label: string; value: string }[] = [];
   if (draft.behavior_label || draft.behavior_code) {
-    items.push({ label: "Moment", value: draft.behavior_label ?? draft.behavior_code ?? "" });
+    items.push({ label: "Observation", value: draft.behavior_label ?? draft.behavior_code ?? "" });
   }
   if (draft.episode_recency) {
     items.push({ label: "When", value: draft.episode_recency.replace(/_/g, " ") });

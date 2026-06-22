@@ -69,8 +69,8 @@ export function describeConversationState(draft: LumaDraft): string {
   const have: string[] = [];
   const need: string[] = [];
 
-  if (behaviorPhrase(draft)) have.push(`moment: ${behaviorPhrase(draft)}`);
-  else need.push("what happened (the moment itself)");
+  if (behaviorPhrase(draft)) have.push(`observation: ${behaviorPhrase(draft)}`);
+  else need.push("what happened (the observation itself)");
 
   if (draft.episode_recency) have.push(`when: ${draft.episode_recency.replace(/_/g, " ")}`);
   else need.push("rough timing (just now vs earlier)");
@@ -139,14 +139,14 @@ export function generateNaturalFollowUp(draft: LumaDraft, userText: string): str
     case "intensity":
       return moment
         ? `${reflect}When the ${moment.toLowerCase()} happened — was it manageable, pretty distressing, or really intense?`
-        : `${reflect}How intense was it for you in the moment?`;
+        : `${reflect}How intense was it for you when it happened?`;
 
     case "context":
       return `${reflect}Do you have any sense of what might have been going on underneath — noise, hunger, a change in routine, or something else? It's okay if you're not sure.`;
 
     case "response":
       if (!draft.strategies_answered) {
-        return `${reflect}In the moment, did you try anything to help — or were you mostly just getting through it?`;
+        return `${reflect}When it happened, did you try anything to help — or were you mostly just getting through it?`;
       }
       return `${reflect}Did any of that seem to help, even a little — or not really?`;
 
@@ -181,7 +181,7 @@ export function buildWarmRecap(draft: LumaDraft): string {
   const tried =
     draft.strategies_tried.length > 0 &&
     draft.strategies_tried[0] !== DID_NOT_TRY_CODE;
-  if (tried) lines.push("And you tried something in the moment.");
+  if (tried) lines.push("And you tried something when it happened.");
 
   return `${lines.join(" ")} Would you like me to save this to your log? You can say yes, or tell me what to change.`;
 }
@@ -214,7 +214,7 @@ export function buildDraftMirror(draft: LumaDraft): string {
   if (draft.notes?.trim()) parts.push("your notes");
 
   if (parts.length === 0) {
-    return "I'm not noting anything specific yet — whenever you're ready, tell me about a moment and I'll capture it here as we talk.";
+    return "I'm not noting anything specific yet — whenever you're ready, tell me about an observation and I'll capture it here as we talk.";
   }
 
   return `Here's what I'm holding in your draft log so far: ${parts.join("; ")}. Feel free to add, correct, or keep going — there's no rush.`;
@@ -226,7 +226,7 @@ export function buildDraftOpenItems(draft: LumaDraft): string[] {
   if (gap === "review") return [];
   switch (gap) {
     case "story":
-      return ["the moment itself"];
+      return ["the observation itself"];
     case "timing":
       return ["rough timing"];
     case "intensity":
@@ -272,15 +272,15 @@ export function buildCompanionWeaveHint(draft: LumaDraft): string {
   const gap = primaryGap(draft);
   switch (gap) {
     case "story":
-      return "If they seem ready to describe a specific moment, gently invite them — no rush.";
+      return "If they seem ready to describe a specific observation, gently invite them — no rush.";
     case "timing":
-      return "If the moment feels right, you may wonder when this happened — recent or a little while ago — woven into your reply, not as a separate form question.";
+      return "If the conversation feels right, you may wonder when this happened — recent or a little while ago — woven into your reply, not as a separate form question.";
     case "intensity":
       return "If they're ready to continue, you might gently sense how hard it felt — in their words, not as a scale.";
     case "context":
       return "If they're open to it, you could wonder what might have been going on underneath — or stay with feelings if they're still processing.";
     case "response":
-      return "If the moment fits, you might ask whether they tried anything to help — or were mostly just getting through it.";
+      return "If it fits naturally, you might ask whether they tried anything to help — or were mostly just getting through it.";
     case "review":
       return "One short sentence: invite them to check the draft log below and say yes to save. Do not recap log fields in chat.";
   }

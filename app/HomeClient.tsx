@@ -254,7 +254,7 @@ function HomeActionCards({
           <div className="home-action-card__body">
             <h3 className="home-action-card__title">Reflect with Luma</h3>
             <p className="home-action-card__desc">
-              Speak or type what happened in your own words — Luma helps you capture the moment and
+              Speak or type what happened in your own words — Luma helps you capture the observation and
               build your log.
             </p>
           </div>
@@ -327,7 +327,7 @@ function HomeWelcomeCard() {
           <p className="home-hero__eyebrow">{formatTodayDate()}</p>
           <h1 className="home-hero__title">{getTimeGreeting()}</h1>
           <p className="home-hero__lead">
-            Talk through a care moment or use a guided check-in to understand what happened, spot
+            Talk through a care observation or use a guided check-in to understand what happened, spot
             possible triggers, and choose what to try next.
           </p>
           <div className="home-hero__badges">
@@ -388,7 +388,7 @@ export default function HomeClient({
     mode === "coach"
       ? "Walk through a structured check-in — triggers, what you tried, and ideas for next time."
       : mode === "luma"
-        ? "Speak or type what happened — Luma helps you capture the moment and build your log."
+        ? "Speak or type what happened — Luma helps you capture the observation and build your log."
         : null;
 
   return (

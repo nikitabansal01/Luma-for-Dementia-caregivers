@@ -19,6 +19,8 @@ import {
   type SynopsisTrend,
 } from "./synopsisBuilder";
 import { buildCareContextLine } from "./careProfile";
+import { getBehaviorLabel } from "./behaviorMap";
+import { getStrategyLabel } from "./coachFlowCatalog";
 import {
   deriveOccurredAt,
   getLogTimeOfDayPeriod,
@@ -884,4 +886,48 @@ export function generateReport(days: number): ReportData {
     helpfulInterventions,
     discussionQuestions,
   };
+}
+
+export type SynopsisLogPreview = {
+  id: string;
+  dateLabel: string;
+  timeOfDay: string | null;
+  behaviorLabel: string;
+  severity: number;
+  outcome: string;
+  notes: string | null;
+  triggerLabels: string[];
+  strategyLabels: string[];
+  recommendedLabels: string[];
+};
+
+function formatSynopsisLogDate(iso: string): string {
+  const date = new Date(iso);
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+export function getSynopsisLogPreviews(days: number, limit = 5): SynopsisLogPreview[] {
+  const { from, to } = getDateRange(days);
+  const logs = listBehaviorLogs({ from, to })
+    .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
+    .slice(0, limit);
+
+  return logs.map((log) => {
+    const triggerCodes = getLogTriggerCodes(log);
+    const strategyCodes = getLogInterventionsAttempted(log);
+    const recommended = log.recommended_interventions ?? [];
+
+    return {
+      id: log.id,
+      dateLabel: formatSynopsisLogDate(log.occurred_at),
+      timeOfDay: log.episode_time_of_day,
+      behaviorLabel: getBehaviorLabel(log.behavior_type),
+      severity: log.severity,
+      outcome: log.outcome,
+      notes: log.notes,
+      triggerLabels: triggerCodes.map((code) => getTriggerDisplayLabel(code, log.behavior_type)),
+      strategyLabels: strategyCodes.map(getStrategyLabel),
+      recommendedLabels: recommended.map(getStrategyLabel),
+    };
+  });
 }
