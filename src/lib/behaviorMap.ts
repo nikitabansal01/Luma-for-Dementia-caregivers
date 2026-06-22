@@ -75,6 +75,19 @@ export function getBehaviorLabel(code: string): string {
   return BEHAVIOR_CODE_TO_LABEL[code] ?? LEGACY_BEHAVIOR_LABELS[code] ?? code;
 }
 
+/** Merge static + custom behavior labels (server-side). */
+export function getBehaviorLabelFromAllSources(
+  code: string,
+  customLabels: Record<string, string> = {}
+): string {
+  return (
+    BEHAVIOR_CODE_TO_LABEL[code] ??
+    customLabels[code] ??
+    LEGACY_BEHAVIOR_LABELS[code] ??
+    code
+  );
+}
+
 export function getBehaviorShortLabel(code: string): string {
   return BEHAVIOR_CODE_TO_SHORT_LABEL[code] ?? getBehaviorLabel(code);
 }

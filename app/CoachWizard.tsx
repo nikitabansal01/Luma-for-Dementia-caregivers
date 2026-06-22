@@ -317,8 +317,6 @@ export default function CoachWizard({ onClose, onQuickLog }: CoachWizardProps) {
               <SeveritySelector
                 value={severity}
                 onChange={setSeverity}
-                disabled={!behaviorCode}
-                hintWhenDisabled="choose a behavior first"
                 required
               />
 

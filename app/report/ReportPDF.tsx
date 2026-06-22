@@ -50,6 +50,12 @@ export default function ReportPDF({
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>Neurologist Summary ({days} days)</Text>
 
+        {data.careContext && (
+          <View style={styles.section}>
+            <Text style={styles.text}>{data.careContext}</Text>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>A) Data Confidence</Text>
           <Text style={styles.text}>

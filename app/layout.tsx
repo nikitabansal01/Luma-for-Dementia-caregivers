@@ -16,8 +16,8 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Care Log — Behavior & care notes",
-  description: "Simple behavior logging and reports for caregivers",
+  title: "Luma for Dementia caregivers",
+  description: "Voice and text care logging for dementia caregivers — Luma companion, coach flow, and clinician synopsis",
 };
 
 export default function RootLayout({
@@ -34,12 +34,13 @@ export default function RootLayout({
               href="/"
               className="font-serif text-lg font-semibold text-care-forest no-underline hover:text-care-olive"
             >
-              Care Log
+              Luma
             </Link>
             <div className="flex gap-1 sm:gap-2">
               <NavLink href="/">Today</NavLink>
               <NavLink href="/history">History</NavLink>
               <NavLink href="/report">Synopsis</NavLink>
+              <NavLink href="/profile">Profile</NavLink>
               <NavLink href="/coach-rules">Coach</NavLink>
             </div>
           </div>

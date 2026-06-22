@@ -7,22 +7,29 @@ import { BEHAVIOR_OPTIONS, getBehaviorLabel } from "@/src/lib/behaviorMap";
 import { TRIGGER_OPTIONS } from "@/src/lib/triggerMap";
 import { getTriggerLabelByCode } from "@/src/lib/triggerCatalog";
 
-function dateToFromISO(dateStr: string): string {
-  return new Date(dateStr + "T00:00:00.000Z").toISOString();
-}
-
-function dateToToISO(dateStr: string): string {
-  return new Date(dateStr + "T23:59:59.999Z").toISOString();
-}
-
 function defaultFrom(): string {
   const d = new Date();
-  d.setUTCDate(d.getUTCDate() - 6);
-  return d.toISOString().slice(0, 10);
+  d.setDate(d.getDate() - 6);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function defaultTo(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function dateToFromISO(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00`).toISOString();
+}
+
+function dateToToISO(dateStr: string): string {
+  return new Date(`${dateStr}T23:59:59.999`).toISOString();
 }
 
 function formatDate(iso: string): string {

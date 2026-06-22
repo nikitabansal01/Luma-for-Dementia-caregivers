@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { db } from "./db";
 import { BEHAVIOR_CODES } from "./behaviorMap";
+import { isKnownBehaviorCode } from "./customBehaviors";
 import {
   buildDiscussionQuestions,
   buildExecutiveSummary,
@@ -12,6 +13,7 @@ import {
   type StrategyOutcomeCounts,
   type SynopsisTrend,
 } from "./synopsisBuilder";
+import { buildCareContextLine } from "./careProfile";
 import {
   deriveOccurredAt,
   getLogTimeOfDayPeriod,
@@ -49,7 +51,10 @@ const episodeDayContextEnum = z.enum([
 
 export const createBehaviorLogSchema = z.object({
   care_recipient_id: z.string().min(1),
-  behavior_type: z.enum(BEHAVIOR_CODES),
+  behavior_type: z
+    .string()
+    .min(1)
+    .refine((code) => isKnownBehaviorCode(code), { message: "Unknown behavior type" }),
   severity: z.number().int().min(1).max(3),
   episode_recency: episodeRecencyEnum,
   episode_time_of_day: episodeTimeOfDayEnum,
@@ -94,8 +99,99 @@ export type CareRecipient = {
   id: string;
   name: string;
   stage: string | null;
+  caregiver_relationship: string | null;
+  age: number | null;
+  living_situation: string | null;
+  onboarding_completed_at: string | null;
+  onboarding_skipped_at: string | null;
   created_at: string;
 };
+
+const dementiaStageEnum = z.enum(["MCI", "MILD", "MODERATE", "SEVERE"]);
+const caregiverRelationshipEnum = z.enum([
+  "SPOUSE",
+  "ADULT_CHILD",
+  "GRANDPARENT",
+  "PARENT",
+  "SIBLING",
+  "OTHER_FAMILY",
+  "PROFESSIONAL",
+  "OTHER",
+]);
+const livingSituationEnum = z.enum([
+  "LIVES_WITH_ME",
+  "SAME_CITY_SEPARATE",
+  "MEMORY_CARE",
+  "OTHER",
+]);
+
+export const saveCareProfileSchema = z.object({
+  name: z.string().trim().min(1, "Add a first name or nickname").max(60),
+  stage: dementiaStageEnum,
+  caregiver_relationship: caregiverRelationshipEnum,
+  age: z.number().int().min(1, "Enter a valid age").max(120),
+  living_situation: livingSituationEnum.nullable().optional(),
+});
+
+export type SaveCareProfilePayload = z.infer<typeof saveCareProfileSchema>;
+
+function mapCareRecipientRow(row: Record<string, unknown>): CareRecipient {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    stage: (row.stage as string | null) ?? null,
+    caregiver_relationship: (row.caregiver_relationship as string | null) ?? null,
+    age: row.age != null ? Number(row.age) : null,
+    living_situation: (row.living_situation as string | null) ?? null,
+    onboarding_completed_at: (row.onboarding_completed_at as string | null) ?? null,
+    onboarding_skipped_at: (row.onboarding_skipped_at as string | null) ?? null,
+    created_at: row.created_at as string,
+  };
+}
+
+export function isOnboardingPending(recipient: CareRecipient): boolean {
+  return !recipient.onboarding_completed_at && !recipient.onboarding_skipped_at;
+}
+
+export function saveCareProfile(payload: unknown): CareRecipient {
+  const parsed = saveCareProfileSchema.parse(payload);
+  const recipient = getOrCreateDefaultRecipient();
+  const now = new Date().toISOString();
+
+  db.prepare(
+    `UPDATE care_recipients SET
+      name = ?,
+      stage = ?,
+      caregiver_relationship = ?,
+      age = ?,
+      living_situation = ?,
+      onboarding_completed_at = ?,
+      onboarding_skipped_at = NULL
+    WHERE id = ?`
+  ).run(
+    parsed.name,
+    parsed.stage,
+    parsed.caregiver_relationship,
+    parsed.age,
+    parsed.living_situation ?? null,
+    now,
+    recipient.id
+  );
+
+  const row = db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(recipient.id);
+  return mapCareRecipientRow(row as Record<string, unknown>);
+}
+
+export function skipOnboarding(): CareRecipient {
+  const recipient = getOrCreateDefaultRecipient();
+  const now = new Date().toISOString();
+  db.prepare("UPDATE care_recipients SET onboarding_skipped_at = ? WHERE id = ?").run(
+    now,
+    recipient.id
+  );
+  const row = db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(recipient.id);
+  return mapCareRecipientRow(row as Record<string, unknown>);
+}
 
 export type BehaviorLog = {
   id: string;
@@ -157,14 +253,18 @@ function rowToBehaviorLog(row: Record<string, unknown>): BehaviorLog {
 }
 
 export function getOrCreateDefaultRecipient(): CareRecipient {
-  const row = db.prepare("SELECT * FROM care_recipients LIMIT 1").get() as CareRecipient | undefined;
-  if (row) return row;
+  const row = db.prepare("SELECT * FROM care_recipients LIMIT 1").get() as
+    | Record<string, unknown>
+    | undefined;
+  if (row) return mapCareRecipientRow(row);
   const id = randomUUID();
   const created_at = new Date().toISOString();
   db.prepare(
     "INSERT INTO care_recipients (id, name, stage, created_at) VALUES (?, ?, ?, ?)"
-  ).run(id, "Default", null, created_at);
-  return { id, name: "Default", stage: null, created_at };
+  ).run(id, "", null, created_at);
+  return mapCareRecipientRow(
+    db.prepare("SELECT * FROM care_recipients WHERE id = ?").get(id) as Record<string, unknown>
+  );
 }
 
 export function createBehaviorLog(payload: unknown): BehaviorLog {
@@ -237,11 +337,11 @@ export function listBehaviorLogs(params: ListBehaviorLogsParams): BehaviorLog[] 
   let sql = "SELECT * FROM behavior_logs WHERE 1=1";
   const args: (string | number)[] = [];
   if (parsed.from) {
-    sql += " AND occurred_at >= ?";
+    sql += " AND created_at >= ?";
     args.push(parsed.from);
   }
   if (parsed.to) {
-    sql += " AND occurred_at <= ?";
+    sql += " AND created_at <= ?";
     args.push(parsed.to);
   }
   if (parsed.behaviorType) {
@@ -406,6 +506,7 @@ export type ReportData = {
   daysWithLogs: number;
   totalDays: number;
   totalIncidents: number;
+  careContext: string | null;
   executiveSummary: string;
   trend: SynopsisTrend;
   topBehaviors: Array<{ behavior: string; count: number; avgSeverity: number }>;
@@ -648,10 +749,14 @@ export function generateReport(days: number): ReportData {
     avgSeverity: currentAvgSeverity,
   });
 
+  const recipient = getOrCreateDefaultRecipient();
+  const careContext = buildCareContextLine(recipient);
+
   return {
     daysWithLogs,
     totalDays,
     totalIncidents,
+    careContext,
     executiveSummary,
     trend,
     topBehaviors,

@@ -22,7 +22,7 @@ export default function SeveritySelector({
   required = false,
 }: SeveritySelectorProps) {
   return (
-    <div className="severity-selector">
+    <div className={`severity-selector${disabled ? " severity-selector--disabled" : ""}`}>
       <div className="severity-selector__header">
         <p className="severity-selector__title">
           {title}
@@ -41,22 +41,28 @@ export default function SeveritySelector({
       >
         {SEVERITY_OPTIONS.map(({ value: level, label: levelLabel, hint, emoji, tone }) => {
           const isSelected = value === level;
-          const stateClass = disabled
-            ? "severity-card--disabled"
-            : isSelected
-              ? `severity-card--selected severity-card--selected-${tone}`
-              : "severity-card--idle";
 
           return (
-            <button
+            <label
               key={level}
-              type="button"
-              role="radio"
-              aria-checked={isSelected}
-              disabled={disabled}
-              onClick={() => onChange(level)}
-              className={`severity-card ${stateClass}`}
+              data-tone={tone}
+              data-selected={isSelected ? "true" : "false"}
+              className="severity-card"
+              onClick={() => {
+                if (!disabled) onChange(level);
+              }}
             >
+              <input
+                type="radio"
+                name="log-severity"
+                value={level}
+                checked={isSelected}
+                onChange={() => onChange(level)}
+                disabled={disabled}
+                required={required}
+                className="sr-only"
+                tabIndex={-1}
+              />
               <span className={`severity-card__icon severity-card__icon--${tone}`} aria-hidden>
                 <span className="severity-card__emoji">{emoji}</span>
               </span>
@@ -65,7 +71,7 @@ export default function SeveritySelector({
                 <span className="severity-card__label">{levelLabel}</span>
                 <span className="severity-card__hint">{hint}</span>
               </span>
-            </button>
+            </label>
           );
         })}
       </div>

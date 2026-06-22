@@ -93,6 +93,9 @@ export default function ReportPage() {
 
           <section className="card report-section--data">
             <h2 className="card-heading mb-2">Executive summary</h2>
+            {reportData.careContext && (
+              <p className="mb-3 text-sm font-medium text-care-forest">{reportData.careContext}</p>
+            )}
             <p className="text-sm leading-relaxed text-care-bark">{reportData.executiveSummary}</p>
             <p className="mt-3 text-xs text-care-stone">
               {reportData.daysWithLogs} of {reportData.totalDays} days included at least one log (

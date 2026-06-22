@@ -8,11 +8,29 @@ import {
   updateLogOutcome,
   generateReport,
   getPastAttemptsForBehavior,
+  saveCareProfile,
+  skipOnboarding,
 } from "@/src/lib/repo";
 import type { ReportData } from "@/src/lib/repo";
 import { saveCoachRules, getRecommendations } from "@/src/lib/coach";
 import { encodeCoachOutcomeDetail } from "@/src/lib/logUtils";
 import type { CoachOutcomeUi } from "@/src/lib/coachFlowCatalog";
+import { createCustomBehavior, listCustomBehaviors } from "@/src/lib/customBehaviors";
+import {
+  confirmCustomBehavior,
+  processLumaTurn,
+  type LumaDraft,
+  type LumaStep,
+  type LumaTurnResult,
+} from "@/src/lib/lumaEngine";
+import { getLumaModelConfig, isLumaLlmConfigured, processLumaTurnWithLlm } from "@/src/lib/lumaLlm";
+import {
+  isLumaTtsConfigured,
+  isValidLumaVoice,
+  LUMA_VOICE_OPTIONS,
+  synthesizeLumaSpeech,
+  type LumaVoiceId,
+} from "@/src/lib/lumaTts";
 import { z } from "zod";
 
 const outcomeEnum = z.enum(["better", "same", "worse", "unknown"]);
@@ -53,6 +71,8 @@ export type QuickLogPayload = {
   trigger_hypotheses?: string[];
   trigger_detail?: string;
 };
+
+export type LumaLogPayload = CoachLogPayload;
 
 export type SubmitCoachResult =
   | { success: true }
@@ -194,4 +214,177 @@ export async function getWhatToTryAfterLogAction(
   const { tryNow, preventNext } = getRecommendations(behaviorCode, triggerCodes);
   const generalTips = [...tryNow, ...preventNext];
   return { behaviorCode, pastAttempts, generalTips };
+}
+
+export async function getCustomBehaviorsAction() {
+  return listCustomBehaviors();
+}
+
+export async function createCustomBehaviorAction(
+  label: string
+): Promise<
+  { success: true; behavior: { code: string; label: string } } | { success: false; error: string }
+> {
+  try {
+    const behavior = createCustomBehavior(label);
+    revalidatePath("/");
+    return { success: true, behavior: { code: behavior.code, label: behavior.label } };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Could not create behavior",
+    };
+  }
+}
+
+export async function submitLumaLogAction(payload: LumaLogPayload): Promise<SubmitCoachResult> {
+  return submitCoachLog(payload);
+}
+
+export type LumaTurnPayload = {
+  step: LumaStep | "confirm";
+  userText: string;
+  draft: LumaDraft;
+  customBehaviors: { code: string; label: string }[];
+  history: { role: "user" | "luma"; text: string }[];
+  pendingCustomLabel?: string | null;
+};
+
+export type LumaTurnActionResult =
+  | (LumaTurnResult & { source: "llm" | "heuristic" })
+  | { success: false; error: string };
+
+export async function lumaTurnAction(payload: LumaTurnPayload): Promise<LumaTurnActionResult> {
+  const { step, userText, draft, customBehaviors, history, pendingCustomLabel } = payload;
+
+  try {
+    if (pendingCustomLabel) {
+      const customResult = confirmCustomBehavior(
+        userText,
+        pendingCustomLabel,
+        draft,
+        customBehaviors
+      );
+      return { ...customResult, source: "heuristic" };
+    }
+
+    if (isLumaLlmConfigured()) {
+      const chatHistory = history.map((m) => ({
+        role: (m.role === "luma" ? "assistant" : "user") as "user" | "assistant",
+        content: m.text,
+      }));
+
+      try {
+        const llm = await processLumaTurnWithLlm(
+          step,
+          userText,
+          draft,
+          customBehaviors,
+          chatHistory
+        );
+        return {
+          draft: llm.draft,
+          step: llm.step,
+          lumaMessages: [llm.reply],
+          needsCustomBehavior: llm.needsCustomBehavior,
+          source: "llm",
+        };
+      } catch (llmErr) {
+        console.error("Luma LLM failed, falling back to heuristics:", llmErr);
+      }
+    }
+
+    const heuristic = processLumaTurn(step, userText, draft, customBehaviors);
+    return { ...heuristic, source: "heuristic" };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Luma could not respond",
+    };
+  }
+}
+
+export async function getLumaLlmStatusAction(): Promise<{
+  configured: boolean;
+  provider: "openai" | "anthropic" | null;
+  companionModel: string | null;
+  scribeModel: string | null;
+  ttsAvailable: boolean;
+  voices: typeof LUMA_VOICE_OPTIONS;
+}> {
+  const openai = Boolean(process.env.OPENAI_API_KEY);
+  const anthropic = Boolean(process.env.ANTHROPIC_API_KEY);
+  const forced = process.env.LUMA_LLM_PROVIDER?.toLowerCase();
+
+  let provider: "openai" | "anthropic" | null = null;
+  if (forced === "openai" && openai) provider = "openai";
+  else if (forced === "anthropic" && anthropic) provider = "anthropic";
+  else if (openai) provider = "openai";
+  else if (anthropic) provider = "anthropic";
+
+  const models = getLumaModelConfig();
+
+  return {
+    configured: provider !== null,
+    provider,
+    companionModel: models?.companionModel ?? null,
+    scribeModel: models?.scribeModel ?? null,
+    ttsAvailable: isLumaTtsConfigured(),
+    voices: LUMA_VOICE_OPTIONS,
+  };
+}
+
+export async function synthesizeLumaSpeechAction(
+  text: string,
+  voice: string
+): Promise<
+  { success: true; audioBase64: string } | { success: false; error: string }
+> {
+  try {
+    if (!isLumaTtsConfigured()) {
+      return { success: false, error: "OpenAI TTS not configured" };
+    }
+    const voiceId: LumaVoiceId = isValidLumaVoice(voice) ? voice : "shimmer";
+    const buffer = await synthesizeLumaSpeech(text, voiceId);
+    const audioBase64 = Buffer.from(buffer).toString("base64");
+    return { success: true, audioBase64 };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Could not synthesize speech",
+    };
+  }
+}
+
+export async function getCareProfileAction() {
+  return getOrCreateDefaultRecipient();
+}
+
+export type SaveCareProfileResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function saveCareProfileAction(
+  payload: unknown
+): Promise<SaveCareProfileResult> {
+  try {
+    saveCareProfile(payload);
+    revalidatePath("/");
+    revalidatePath("/profile");
+    revalidatePath("/report");
+    return { success: true };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return { success: false, error: err.issues[0]?.message ?? "Invalid profile data" };
+    }
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Could not save profile",
+    };
+  }
+}
+
+export async function skipOnboardingAction(): Promise<void> {
+  skipOnboarding();
+  revalidatePath("/");
 }

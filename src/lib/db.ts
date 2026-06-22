@@ -56,11 +56,34 @@ try {
   db.exec(`ALTER TABLE behavior_logs ADD COLUMN exact_episode_at TEXT`);
 } catch {}
 db.exec(`
+  CREATE TABLE IF NOT EXISTS custom_behaviors (
+    code TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+`);
+db.exec(`
   CREATE TABLE IF NOT EXISTS coach_rules (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     content TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
 `);
+
+try {
+  db.exec(`ALTER TABLE care_recipients ADD COLUMN caregiver_relationship TEXT`);
+} catch {}
+try {
+  db.exec(`ALTER TABLE care_recipients ADD COLUMN age INTEGER`);
+} catch {}
+try {
+  db.exec(`ALTER TABLE care_recipients ADD COLUMN living_situation TEXT`);
+} catch {}
+try {
+  db.exec(`ALTER TABLE care_recipients ADD COLUMN onboarding_completed_at TEXT`);
+} catch {}
+try {
+  db.exec(`ALTER TABLE care_recipients ADD COLUMN onboarding_skipped_at TEXT`);
+} catch {}
 
 export { db };

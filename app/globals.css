@@ -345,26 +345,18 @@
   .severity-selector__grid {
     @apply grid grid-cols-1 gap-3 sm:grid-cols-3;
   }
+  .severity-selector--disabled .severity-card {
+    @apply cursor-not-allowed opacity-70;
+  }
   .severity-card {
-    @apply relative flex w-full items-center gap-4 rounded-xl border-2 px-4 py-4 text-left transition-all;
+    @apply relative flex w-full cursor-pointer items-center gap-4 rounded-xl border-2 border-care-sage bg-white px-4 py-4 text-left transition-all hover:border-care-olive/50 hover:shadow-sm;
   }
   .severity-card__icon {
     @apply flex h-16 w-16 shrink-0 items-center justify-center rounded-full;
   }
   .severity-card__emoji {
-    @apply text-[2rem] leading-none;
-  }
-  .severity-card__icon--mild {
-    background-color: #b8e0c4;
-    color: #1f5c33;
-  }
-  .severity-card__icon--moderate {
-    background-color: #f5d76e;
-    color: #7a5a12;
-  }
-  .severity-card__icon--severe {
-    background-color: #f5b8a8;
-    color: #8b3a2a;
+    font-size: 2rem;
+    line-height: 1;
   }
   .severity-card__text {
     @apply flex min-w-0 flex-col leading-tight;
@@ -378,26 +370,32 @@
   .severity-card__hint {
     @apply mt-0.5 text-xs text-care-stone;
   }
-  .severity-card--idle {
-    @apply cursor-pointer border-care-sage bg-white hover:border-care-olive/50 hover:shadow-sm;
+  .severity-card__icon--mild {
+    background-color: #b8e0c4;
+    color: #1f5c33;
   }
-  .severity-card--selected-mild {
-    @apply cursor-pointer shadow-sm;
+  .severity-card__icon--moderate {
+    background-color: #f5d76e;
+    color: #7a5a12;
+  }
+  .severity-card__icon--severe {
+    background-color: #f5b8a8;
+    color: #8b3a2a;
+  }
+  .severity-card[data-selected="true"][data-tone="mild"] {
     border-color: #2d5a3d;
     background-color: #e8f5ec;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08);
   }
-  .severity-card--selected-moderate {
-    @apply cursor-pointer shadow-sm;
+  .severity-card[data-selected="true"][data-tone="moderate"] {
     border-color: #c9a227;
     background-color: #fdf6e3;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08);
   }
-  .severity-card--selected-severe {
-    @apply cursor-pointer shadow-sm;
+  .severity-card[data-selected="true"][data-tone="severe"] {
     border-color: #d97058;
     background-color: #fdeee9;
-  }
-  .severity-card--disabled {
-    @apply cursor-not-allowed border-care-sage/60 bg-care-sage/20 opacity-70;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08);
   }
 
   .coach-flow-severity-card {
@@ -462,5 +460,210 @@
   }
   .coach-flow-grid:not(.coach-flow-grid--step4) .coach-privacy-card {
     @apply mx-auto max-w-xl;
+  }
+
+  /* Luma companion */
+  .luma-companion {
+    @apply mx-auto max-w-2xl;
+  }
+  .luma-companion__header {
+    @apply mb-4 flex items-start justify-between gap-3;
+  }
+  .luma-companion__eyebrow {
+    @apply text-xs font-semibold uppercase tracking-wide text-care-skyDark;
+  }
+  .luma-companion__title {
+    @apply text-2xl font-semibold text-care-forest;
+  }
+  .luma-companion__lead {
+    @apply mt-1 text-sm text-care-stone;
+  }
+  .luma-companion__provider {
+    @apply text-care-skyDark;
+  }
+  .luma-companion__close {
+    @apply shrink-0 rounded-full border border-care-sage bg-white px-3 py-1.5 text-xs font-medium text-care-stone transition hover:border-care-bark/30 hover:text-care-bark;
+  }
+  .luma-companion__messages {
+    @apply mb-4 max-h-[min(22rem,50vh)] space-y-3 overflow-y-auto rounded-2xl border border-care-sage/80 bg-white/90 p-4 shadow-card;
+  }
+  .luma-message {
+    @apply flex gap-2;
+  }
+  .luma-message--luma {
+    @apply mr-auto max-w-[92%];
+  }
+  .luma-message--user {
+    @apply ml-auto max-w-[92%] flex-row-reverse;
+  }
+  .luma-message__avatar {
+    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-care-sky/40 text-xs text-care-forest;
+  }
+  .luma-message__text {
+    @apply rounded-2xl px-4 py-3 text-sm leading-relaxed;
+  }
+  .luma-message--luma .luma-message__text {
+    @apply rounded-bl-md bg-care-sky/25 text-care-bark;
+  }
+  .luma-message__body {
+    @apply space-y-2.5 rounded-2xl rounded-bl-md bg-care-sky/25 px-4 py-3 text-sm leading-relaxed text-care-bark;
+  }
+  .luma-message__body .luma-message__text {
+    @apply rounded-none bg-transparent p-0;
+  }
+  .luma-message__list {
+    @apply list-disc space-y-1.5 pl-5 text-care-bark;
+  }
+  .luma-message--user .luma-message__text {
+    @apply rounded-br-md bg-care-forest text-white;
+  }
+  .luma-message__text--thinking {
+    @apply italic text-care-stone;
+  }
+  .luma-companion__summary {
+    @apply mb-4 rounded-xl border border-care-sage/80 bg-care-sage/15 text-sm text-care-bark;
+  }
+  .luma-companion__summary--open {
+    @apply shadow-card;
+  }
+  .luma-companion__summary-toggle {
+    @apply flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-care-sage/25;
+  }
+  .luma-companion__summary-label {
+    @apply font-medium text-care-bark;
+  }
+  .luma-companion__summary-badge {
+    @apply rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-care-stone;
+  }
+  .luma-companion__summary-chevron {
+    @apply ml-auto text-care-stone;
+  }
+  .luma-companion__summary-body {
+    @apply border-t border-care-sage/50 px-4 pb-3 pt-2;
+  }
+  .luma-companion__summary-dl {
+    @apply space-y-2;
+  }
+  .luma-companion__summary-row {
+    @apply grid grid-cols-[5.5rem_1fr] gap-2 text-xs;
+  }
+  .luma-companion__summary-row dt {
+    @apply font-medium text-care-stone;
+  }
+  .luma-companion__summary-row dd {
+    @apply text-care-bark;
+  }
+  .luma-companion__summary-empty {
+    @apply mt-1.5 text-care-stone leading-relaxed;
+  }
+  .luma-companion__summary-open {
+    @apply mt-2 border-t border-care-sage/50 pt-2 text-xs text-care-stone/90 italic;
+  }
+  .luma-companion__summary-ready {
+    @apply mt-2 rounded-lg bg-care-sky/20 px-3 py-2 text-xs text-care-forest;
+  }
+  .luma-companion__final-log {
+    @apply mb-4 rounded-xl border border-care-sky/40 bg-white/95 p-4 shadow-card;
+  }
+  .luma-companion__final-log-header {
+    @apply mb-4 border-b border-care-sage/50 pb-3;
+  }
+  .luma-companion__final-log-title {
+    @apply font-serif text-lg font-semibold text-care-forest;
+  }
+  .luma-companion__final-log-lead {
+    @apply mt-1 text-sm leading-relaxed text-care-stone;
+  }
+  .luma-companion__autosave-hint {
+    @apply mt-2 text-xs text-care-stone;
+  }
+  .luma-companion__final-log-fields {
+    @apply max-h-[min(28rem,55vh)] space-y-5 overflow-y-auto pr-1;
+  }
+  .luma-companion__final-log-actions {
+    @apply mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-care-sage/50 pt-4;
+  }
+  .luma-companion__input-row {
+    @apply flex gap-2;
+  }
+  .luma-companion__input {
+    @apply min-h-[2.75rem] flex-1 rounded-xl border border-care-sage bg-white px-4 py-2.5 text-sm text-care-bark placeholder:text-care-stone/70 focus:border-care-skyDark/50 focus:outline-none focus:ring-2 focus:ring-care-sky/40;
+  }
+  .luma-companion__input--listening {
+    @apply border-care-skyDark/40 bg-care-sky/10;
+  }
+  .luma-companion__listen-hint {
+    @apply mt-2 text-xs leading-relaxed text-care-stone;
+  }
+  .luma-companion__mic {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-care-sage bg-white text-lg transition hover:border-care-skyDark/40;
+  }
+  .luma-companion__mic--active {
+    @apply border-red-300 bg-red-50 text-red-600;
+  }
+  .luma-companion__voice-toggle {
+    @apply flex cursor-pointer items-center gap-2 text-xs text-care-stone;
+  }
+  .luma-companion__voice-row {
+    @apply mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between;
+  }
+  .luma-companion__voice-picker {
+    @apply flex items-center gap-2 text-xs text-care-stone;
+  }
+  .luma-companion__voice-picker-label {
+    @apply font-medium text-care-bark;
+  }
+  .luma-companion__voice-select {
+    @apply rounded-lg border border-care-sage bg-white px-2 py-1.5 text-xs text-care-bark focus:border-care-skyDark/50 focus:outline-none focus:ring-2 focus:ring-care-sky/40;
+  }
+
+  /* Onboarding + care profile */
+  .onboarding-overlay {
+    @apply fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-care-bark/40 p-4 pt-10 backdrop-blur-sm sm:items-center sm:p-6;
+  }
+  .onboarding-card {
+    @apply w-full max-w-lg shadow-cardHover;
+  }
+  .onboarding-banner {
+    @apply flex flex-col gap-3 rounded-xl border border-care-amber/50 bg-care-amber/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between;
+  }
+  .onboarding-banner__text {
+    @apply text-sm text-care-bark;
+  }
+  .onboarding-banner__link {
+    @apply shrink-0 text-sm font-semibold text-care-forest underline hover:text-care-olive;
+  }
+  .care-profile-form__disclaimer {
+    @apply rounded-lg border border-care-sage bg-care-cream/80 px-3 py-2.5 text-xs leading-relaxed text-care-stone;
+  }
+  .care-profile-form__field {
+    @apply space-y-2;
+  }
+  .care-profile-form__label {
+    @apply block text-sm font-medium text-care-bark;
+  }
+  .care-profile-form__hint {
+    @apply text-xs leading-relaxed text-care-stone;
+  }
+  .care-profile-form__stage-grid {
+    @apply grid gap-2 sm:grid-cols-2;
+  }
+  .care-profile-form__stage-option {
+    @apply flex cursor-pointer items-start gap-2 rounded-lg border border-care-sage bg-white px-3 py-2.5 text-sm text-care-bark transition hover:border-care-forest/30 has-[:checked]:border-care-forest has-[:checked]:bg-care-mint/25;
+  }
+  .care-profile-form__stage-option input {
+    @apply mt-0.5 shrink-0;
+  }
+  .care-profile-form__error {
+    @apply text-sm text-red-700;
+  }
+  .care-profile-form__success {
+    @apply rounded-lg border border-care-mint bg-care-mint/20 px-3 py-2.5 text-sm font-medium text-care-forest;
+  }
+  .btn-primary--saved {
+    @apply bg-care-olive hover:bg-care-olive;
+  }
+  .care-profile-form__actions {
+    @apply flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap;
   }
 }

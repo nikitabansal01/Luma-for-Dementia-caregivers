@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { BehaviorLog } from "@/src/lib/repo";
-import { getBehaviorLabel } from "@/src/lib/behaviorMap";
+import type { BehaviorLog, CareRecipient } from "@/src/lib/repo";
+import { getBehaviorLabelFromAllSources } from "@/src/lib/behaviorMap";
 import {
   getLogInterventionLabel,
   getLogInterventionsAttempted,
@@ -16,6 +16,10 @@ import {
 } from "@/src/lib/logUtils";
 import CoachWizard from "./CoachWizard";
 import QuickLogForm from "./QuickLogForm";
+import LumaCompanion from "./LumaCompanion";
+import OnboardingModal from "./OnboardingModal";
+
+type CustomBehaviorOption = { code: string; label: string };
 
 function severityBadgeClass(severity: number): string {
   const base = "log-badge ";
@@ -38,7 +42,13 @@ function rowOutcomeClass(outcome: string): string {
   return "log-row--same";
 }
 
-function TodayLogCard({ log }: { log: BehaviorLog }) {
+function TodayLogCard({
+  log,
+  customBehaviorLabels,
+}: {
+  log: BehaviorLog;
+  customBehaviorLabels: Record<string, string>;
+}) {
   const triggerCodes = getLogTriggerCodes(log).slice(0, 3);
   const strategies = getLogInterventionsAttempted(log);
   const preview = notePreview(log.notes);
@@ -65,7 +75,9 @@ function TodayLogCard({ log }: { log: BehaviorLog }) {
           <div className="log-card__body">
             <div className="log-card__top">
               <div className="min-w-0 flex-1 space-y-2">
-                <h3 className="log-card__title">{getBehaviorLabel(log.behavior_type)}</h3>
+                <h3 className="log-card__title">
+                  {getBehaviorLabelFromAllSources(log.behavior_type, customBehaviorLabels)}
+                </h3>
                 <div className="log-card__badges">
                       <span className={severityBadgeClass(log.severity)}>
                         {getLogSeverityDisplay(log.severity)}
@@ -139,9 +151,11 @@ function TodayLogCard({ log }: { log: BehaviorLog }) {
 function TodayLogsList({
   logs,
   onQuickLog,
+  customBehaviorLabels,
 }: {
   logs: BehaviorLog[];
   onQuickLog: () => void;
+  customBehaviorLabels: Record<string, string>;
 }) {
   if (logs.length === 0) {
     return (
@@ -164,7 +178,7 @@ function TodayLogsList({
     <div className="space-y-4">
       <ul className="list-none space-y-3 pl-0">
         {logs.map((log) => (
-          <TodayLogCard key={log.id} log={log} />
+          <TodayLogCard key={log.id} log={log} customBehaviorLabels={customBehaviorLabels} />
         ))}
       </ul>
       <button type="button" onClick={onQuickLog} className="btn-add-log">
@@ -175,8 +189,27 @@ function TodayLogsList({
   );
 }
 
-export default function HomeClient({ todayLogs }: { todayLogs: BehaviorLog[] }) {
-  const [mode, setMode] = useState<"coach" | "quick" | null>(null);
+export default function HomeClient({
+  todayLogs,
+  customBehaviors: initialCustomBehaviors,
+  customBehaviorLabels: initialCustomBehaviorLabels,
+  careRecipient,
+  showOnboarding,
+}: {
+  todayLogs: BehaviorLog[];
+  customBehaviors: CustomBehaviorOption[];
+  customBehaviorLabels: Record<string, string>;
+  careRecipient: CareRecipient;
+  showOnboarding: boolean;
+}) {
+  const [mode, setMode] = useState<"coach" | "quick" | "luma" | null>(null);
+  const [customBehaviors, setCustomBehaviors] = useState(initialCustomBehaviors);
+  const [customBehaviorLabels, setCustomBehaviorLabels] = useState(initialCustomBehaviorLabels);
+
+  const showProfileBanner =
+    !showOnboarding &&
+    careRecipient.onboarding_skipped_at &&
+    !careRecipient.onboarding_completed_at;
 
   function openQuickLog() {
     setMode("quick");
@@ -184,42 +217,74 @@ export default function HomeClient({ todayLogs }: { todayLogs: BehaviorLog[] }) 
 
   return (
     <div className="space-y-10">
+      {showOnboarding && <OnboardingModal recipient={careRecipient} />}
+
+      {showProfileBanner && (
+        <div className="onboarding-banner">
+          <p className="onboarding-banner__text">
+            Add a quick profile so Luma and your synopsis have the right context.
+          </p>
+          <Link href="/profile" className="onboarding-banner__link">
+            Complete profile
+          </Link>
+        </div>
+      )}
+
       <header>
         <h1 className="font-serif text-2xl font-semibold text-care-forest sm:text-3xl">
-          Care Log
+          Luma
         </h1>
         <p className="mt-2 max-w-2xl text-base leading-relaxed text-care-stone">
           {mode === "coach"
             ? "Log an incident, reflect on triggers, and get guided next steps."
-            : "Something happened? Get guided help or log quickly."}
+            : mode === "luma"
+              ? "Talk with Luma — she'll help capture what happened in your own words."
+              : "Something happened? Get guided help or log quickly."}
         </p>
       </header>
 
       {mode === null && (
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <button
+            type="button"
+            onClick={() => setMode("luma")}
+            className="btn-primary flex-1 py-4 text-base sm:min-w-[140px]"
+          >
+            Talk with Luma
+          </button>
           <button
             type="button"
             onClick={() => setMode("coach")}
-            className="btn-primary flex-1 py-4 text-base"
+            className="btn-secondary flex-1 py-4 text-base sm:min-w-[140px]"
           >
             Coach me now
           </button>
           <button
             type="button"
             onClick={openQuickLog}
-            className="btn-secondary flex-1 py-4 text-base"
+            className="btn-secondary flex-1 py-4 text-base sm:min-w-[140px]"
           >
             Quick log
           </button>
         </div>
       )}
 
+      {mode === "luma" && (
+        <LumaCompanion
+          customBehaviors={customBehaviors}
+          onClose={() => setMode(null)}
+          onBehaviorsUpdated={(behaviors) => {
+            setCustomBehaviors(behaviors);
+            setCustomBehaviorLabels(Object.fromEntries(behaviors.map((b) => [b.code, b.label])));
+          }}
+        />
+      )}
       {mode === "coach" && (
         <CoachWizard onClose={() => setMode(null)} onQuickLog={openQuickLog} />
       )}
       {mode === "quick" && <QuickLogForm onClose={() => setMode(null)} />}
 
-      {mode !== "coach" && (
+      {mode !== "coach" && mode !== "luma" && (
         <section className="section-band section-band--when">
           <div className="today-logs-header">
             <h2 className="card-heading">Today&apos;s logs</h2>
@@ -229,7 +294,11 @@ export default function HomeClient({ todayLogs }: { todayLogs: BehaviorLog[] }) 
               </span>
             )}
           </div>
-          <TodayLogsList logs={todayLogs} onQuickLog={openQuickLog} />
+          <TodayLogsList
+            logs={todayLogs}
+            onQuickLog={openQuickLog}
+            customBehaviorLabels={customBehaviorLabels}
+          />
         </section>
       )}
     </div>
