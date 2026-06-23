@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { DM_Sans, Lora } from "next/font/google";
 import "./globals.css";
 import LumaLogo from "./LumaLogo";
@@ -36,6 +37,7 @@ export default function RootLayout({
           </div>
         </header>
         <main className="site-main">{children}</main>
+        <Analytics />
       </body>
     </html>
   );
